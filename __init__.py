@@ -50,11 +50,13 @@ class _DiagonalDirichletCalibrator(BaseEstimator, RegressorMixin):
             else:
                 bounds.append((0, 0))
 
+        is_single = False
+
         weights, _, _ = fmin_l_bfgs_b(
             _objective,
             fprime=_grad,
             x0=weights_0,
-            args=(X_, target),
+            args=(X_, target, is_single),
             bounds=bounds
         )
 
@@ -73,17 +75,62 @@ class _DiagonalDirichletCalibrator(BaseEstimator, RegressorMixin):
         return self.predict_proba(S)
 
 
+class _FixedDiagonalDirichletCalibrator(_DiagonalDirichletCalibrator):
+    def fit(self, X, y, *args, **kwargs):
+        eps = np.finfo(X.dtype).eps
+        X_ = np.log(np.clip(X, eps, 1-eps))
+
+        X_ = np.hstack((X_, np.ones((len(X), 1))))
+
+        k = len(np.unique(y))
+        target = label_binarize(y, range(k))
+
+        weights_0 = np.append(np.random.randn(k-1), np.random.rand())
+
+        bounds = [(-np.inf, np.inf) for _ in range(k-1)]
+        bounds.append((0, np.inf))
+
+        is_single = True
+
+        weights, _, _ = fmin_l_bfgs_b(
+            _objective,
+            fprime=_grad,
+            x0=weights_0,
+            args=(X_, target, is_single),
+            bounds=bounds
+        )
+
+        self.weights_ = _get_weights(weights, is_single)
+        self.coef_ = self.weights_.transpose()[:, :-1]
+        self.intercept_ = self.weights_.transpose()[:, -1]
+        return self
+
+
+def _get_weights(params, is_single):
+    if not is_single:
+        return params.reshape(-1, 2)
+    else:
+        k = len(params)
+        value = params[-1]
+        intercepts = params[:-1]
+        weights = np.zeros((k+1, k-1))
+        weights[np.diag_indices(k-1)] = value
+        weights[k-1] = value * -1
+        weights[k] = intercepts
+        return weights
+
+
 def _objective(params, *args):
-    (X, y) = args
-    weights = params.reshape(-1, 2)
+    (X, y, is_single) = args
+    weights = _get_weights(params, is_single)
     outputs = _calculate_outputs(weights, X)
     loss = log_loss(y, outputs, normalize=False)
     return loss
 
 
 def _grad(params, *args):
-    (X, y) = args
-    weights = params.reshape(-1, 2)
+    (X, y, is_single) = args
+    weights = _get_weights(params, is_single)
     outputs = _calculate_outputs(weights, X)
 
     k = len(weights) - 1
@@ -96,7 +143,13 @@ def _grad(params, *args):
         for j in range(k - 1):
             grad[i, j] = np.sum((s - 1) * X[:, i])
 
-    return grad.ravel()
+    if not is_single:
+        grad = grad.ravel()
+    else:
+        grad_fixed = np.sum(grad[np.diag_indices(k-1)])
+        grad_fixed += grad[k-1, 0]
+        grad = np.append(grad[k], grad_fixed)
+    return grad
 
 
 def _calculate_outputs(weights, X):
@@ -147,6 +200,8 @@ class DirichletCalibrator(BaseEstimator, RegressorMixin):
     def __init__(self, matrix_type='full'):
         if matrix_type == 'diagonal':
             self.calibrator_ = _DiagonalDirichletCalibrator()
+        elif matrix_type == 'fixed_diagonal':
+            self.calibrator_ = _FixedDiagonalDirichletCalibrator()
         else:
             self.calibrator_ = _FullDirichletCalibrator()
 
