@@ -9,7 +9,7 @@ from sklearn.metrics import log_loss
 from scipy.optimize import fmin_l_bfgs_b
 
 
-class DiagonalDirichletCalibrator(BaseEstimator, RegressorMixin):
+class _DiagonalDirichletCalibrator(BaseEstimator, RegressorMixin):
     def __init__(self):
         self.coef_ = None
         self.intercept_ = None
@@ -113,7 +113,7 @@ def _softmax(X):
     return exps / np.sum(exps, axis=1).reshape(-1, 1)
 
 
-class DirichletCalibrator(BaseEstimator, RegressorMixin):
+class _FullDirichletCalibrator(BaseEstimator, RegressorMixin):
     def __init__(self):
         self.calibrator_ = None
 
@@ -127,6 +127,8 @@ class DirichletCalibrator(BaseEstimator, RegressorMixin):
             C=99999999999,
             multi_class='multinomial', solver='saga'
         ).fit(X, y, *args, **kwargs)
+        self.coef_ = self.calibrator_.coef_
+        self.intercept_ = self.calibrator_.intercept_
 
         return self
 
@@ -138,4 +140,24 @@ class DirichletCalibrator(BaseEstimator, RegressorMixin):
     def predict(self, S):
         eps = np.finfo(S.dtype).eps
         S = np.log(np.clip(S, eps, 1-eps))
+        return self.calibrator_.predict(S)
+
+
+class DirichletCalibrator(BaseEstimator, RegressorMixin):
+    def __init__(self, matrix_type='full'):
+        if matrix_type == 'diagonal':
+            self.calibrator_ = _DiagonalDirichletCalibrator()
+        else:
+            self.calibrator_ = _FullDirichletCalibrator()
+
+    def fit(self, X, y, *args, **kwargs):
+        self.calibrator_ = self.calibrator_.fit(X, y, *args, **kwargs)
+        self.coef_ = self.calibrator_.coef_
+        self.intercept_ = self.calibrator_.intercept_
+        return self
+
+    def predict_proba(self, S):
+        return self.calibrator_.predict_proba(S)
+
+    def predict(self, S):
         return self.calibrator_.predict(S)
