@@ -26,7 +26,7 @@ class _DiagonalDirichletCalibrator(BaseEstimator, RegressorMixin):
         weights_0 = np.zeros((k+1, k-1))
         weights_0[np.diag_indices(k-1)] = np.random.rand(k-1)
         weights_0[k-1] = np.random.rand(k-1) * -1
-        weights_0[k] = np.random.randn(k-1)
+        weights_0[k] = np.random.randn(k-1)        
 
         weights_0 = weights_0.ravel()
 
@@ -57,7 +57,8 @@ class _DiagonalDirichletCalibrator(BaseEstimator, RegressorMixin):
             fprime=_grad,
             x0=weights_0,
             args=(X_, target, is_single),
-            bounds=bounds
+            bounds=bounds,
+            iprint=5
         )
 
         self.weights_ = weights.reshape(-1, k-1)
@@ -85,8 +86,7 @@ class _FixedDiagonalDirichletCalibrator(_DiagonalDirichletCalibrator):
         k = len(np.unique(y))
         target = label_binarize(y, range(k))
 
-        weights_0 = np.append(np.random.randn(k-1), np.random.rand())
-
+        weights_0 = np.append(np.random.randn(k-1), np.random.rand()*10)
         bounds = [(-np.inf, np.inf) for _ in range(k-1)]
         bounds.append((0, np.inf))
 
@@ -108,7 +108,9 @@ class _FixedDiagonalDirichletCalibrator(_DiagonalDirichletCalibrator):
 
 def _get_weights(params, is_single):
     if not is_single:
-        return params.reshape(-1, 2)
+        n_params = len(params)
+        k = int(np.ceil(np.sqrt(n_params - 1)))
+        return params.reshape(-1, k-1)
     else:
         k = len(params)
         value = params[-1]
@@ -124,7 +126,7 @@ def _objective(params, *args):
     (X, y, is_single) = args
     weights = _get_weights(params, is_single)
     outputs = _calculate_outputs(weights, X)
-    loss = log_loss(y, outputs, normalize=False)
+    loss = log_loss(y, outputs)
     return loss
 
 
@@ -141,7 +143,7 @@ def _grad(params, *args):
 
     for i in range(k + 1):
         for j in range(k - 1):
-            grad[i, j] = np.sum((s - 1) * X[:, i])
+            grad[i, j] = np.mean((s - 1) * X[:, i])
 
     if not is_single:
         grad = grad.ravel()
@@ -216,3 +218,31 @@ class DirichletCalibrator(BaseEstimator, RegressorMixin):
 
     def predict(self, S):
         return self.calibrator_.predict(S)
+
+if __name__ == '__main__':
+    from sklearn.datasets import load_iris
+    from sklearn.naive_bayes import GaussianNB
+
+    iris = load_iris()
+    nb = GaussianNB().fit(iris.data, iris.target)
+    pred = nb.predict_proba(iris.data)
+
+    diag = DirichletCalibrator(matrix_type='diagonal').fit(pred, iris.target)
+    print diag.coef_
+    print diag.intercept_
+
+    print 'll diag: {}'.format(log_loss(iris.target, diag.predict_proba(pred)))
+
+    # fixed = DirichletCalibrator(
+    #     matrix_type='fixed_diagonal').fit(pred, iris.target)
+    # print fixed.coef_
+    # print fixed.intercept_
+
+    # print 'll fixed: {}'.format(
+    #     log_loss(iris.target, fixed.predict_proba(pred)))
+
+    # full = DirichletCalibrator(matrix_type='full').fit(pred, iris.target)
+    # print full.coef_
+    # print full.intercept_
+
+    # print 'll full: {}'.format(log_loss(iris.target, full.predict_proba(pred)))
