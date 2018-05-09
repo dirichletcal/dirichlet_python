@@ -24,8 +24,8 @@ class _DiagonalDirichletCalibrator(BaseEstimator, RegressorMixin):
         target = label_binarize(y, range(k))
 
         weights_0 = np.zeros((k+1, k-1))
-        weights_0[np.diag_indices(k-1)] = np.random.rand(k-1)
-        weights_0[k-1] = np.random.rand(k-1) * -1
+        weights_0[np.diag_indices(k-1)] = np.random.rand(k-1) * 10
+        weights_0[k-1] = np.random.rand(k-1) * -10
         weights_0[k] = np.random.randn(k-1)        
 
         weights_0 = weights_0.ravel()
@@ -54,7 +54,8 @@ class _DiagonalDirichletCalibrator(BaseEstimator, RegressorMixin):
 
         weights, _, _ = fmin_l_bfgs_b(
             _objective,
-            fprime=_grad,
+            # fprime=_grad,
+            approx_grad=True,
             x0=weights_0,
             args=(X_, target, is_single),
             bounds=bounds
@@ -93,7 +94,8 @@ class _FixedDiagonalDirichletCalibrator(_DiagonalDirichletCalibrator):
 
         weights, _, _ = fmin_l_bfgs_b(
             _objective,
-            fprime=_grad,
+            # fprime=_grad,
+            approx_grad=True,
             x0=weights_0,
             args=(X_, target, is_single),
             bounds=bounds
@@ -217,31 +219,3 @@ class DirichletCalibrator(BaseEstimator, RegressorMixin):
 
     def predict(self, S):
         return self.calibrator_.predict(S)
-
-if __name__ == '__main__':
-    from sklearn.datasets import load_iris
-    from sklearn.naive_bayes import GaussianNB
-
-    iris = load_iris()
-    nb = GaussianNB().fit(iris.data, iris.target)
-    pred = nb.predict_proba(iris.data)
-
-    diag = DirichletCalibrator(matrix_type='diagonal').fit(pred, iris.target)
-    print diag.coef_
-    print diag.intercept_
-
-    print 'll diag: {}'.format(log_loss(iris.target, diag.predict_proba(pred)))
-
-    # fixed = DirichletCalibrator(
-    #     matrix_type='fixed_diagonal').fit(pred, iris.target)
-    # print fixed.coef_
-    # print fixed.intercept_
-
-    # print 'll fixed: {}'.format(
-    #     log_loss(iris.target, fixed.predict_proba(pred)))
-
-    # full = DirichletCalibrator(matrix_type='full').fit(pred, iris.target)
-    # print full.coef_
-    # print full.intercept_
-
-    # print 'll full: {}'.format(log_loss(iris.target, full.predict_proba(pred)))
