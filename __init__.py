@@ -57,8 +57,7 @@ class _DiagonalDirichletCalibrator(BaseEstimator, RegressorMixin):
             fprime=_grad,
             x0=weights_0,
             args=(X_, target, is_single),
-            bounds=bounds,
-            iprint=5
+            bounds=bounds
         )
 
         self.weights_ = weights.reshape(-1, k-1)
