@@ -1,7 +1,7 @@
 from sklearn.base import BaseEstimator, RegressorMixin
 
 import numpy as np
-from multinomial import MultinomialRegression
+from .multinomial import MultinomialRegression
 
 
 class FullDirichletCalibrator(BaseEstimator, RegressorMixin):

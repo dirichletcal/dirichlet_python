@@ -1,7 +1,7 @@
 import numpy as np
 
-from multinomial import MultinomialRegression
-from fulldirichlet import FullDirichletCalibrator
+from .multinomial import MultinomialRegression
+from .fulldirichlet import FullDirichletCalibrator
 
 
 class DiagonalDirichletCalibrator(FullDirichletCalibrator):
