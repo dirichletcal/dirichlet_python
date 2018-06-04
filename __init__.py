@@ -7,14 +7,17 @@ from dirichlet.calib.fixeddirichlet import FixedDiagonalDirichletCalibrator
 
 class DirichletCalibrator(BaseEstimator, RegressorMixin):
     def __init__(self, matrix_type='full'):
-        if matrix_type == 'diagonal':
+        self.matrix_type = matrix_type
+
+    def fit(self, X, y, *args, **kwargs):
+
+        if self.matrix_type == 'diagonal':
             self.calibrator_ = DiagonalDirichletCalibrator()
-        elif matrix_type == 'fixed_diagonal':
+        elif self.matrix_type == 'fixed_diagonal':
             self.calibrator_ = FixedDiagonalDirichletCalibrator()
         else:
             self.calibrator_ = FullDirichletCalibrator()
 
-    def fit(self, X, y, *args, **kwargs):
         self.calibrator_ = self.calibrator_.fit(X, y, *args, **kwargs)
         self.coef_ = self.calibrator_.coef_
         self.intercept_ = self.calibrator_.intercept_
