@@ -22,11 +22,12 @@ class MultinomialRegression(BaseEstimator, RegressorMixin):
         classes = np.unique(y)
         k = len(classes)
         target = label_binarize(y, classes)
+        if k == 2:
+            target = np.hstack([target, 1-target])
 
         if self.weights_0_ is None:
             weights_0 = np.random.randn(k + 1, k - 1)
-            weights_0[np.diag_indices(
-                k - 1)] = np.abs(weights_0[np.diag_indices(k - 1)])
+            weights_0[np.diag_indices(k - 1)] = np.abs(weights_0[np.diag_indices(k - 1)])
             weights_0[k - 1] = np.abs(weights_0[k - 1]) * -1
         else:
             weights_0 = self.weights_0_
@@ -51,16 +52,36 @@ class MultinomialRegression(BaseEstimator, RegressorMixin):
         # else:
         #    bounds = self.bounds_
 
-        print('Here!')
-
-        weights, _, _ = minimize(
-            method='Newton-CG',
+        res = minimize(
+            method='BFGS',
             fun=_objective,
             jac=_gradient,
             x0=weights_0,
             args=(X_, target, k),
-            bounds=None
+            bounds=None,
+            tol=1e-16,
+            options={'maxiter': 50000,
+                     'disp': True,
+                     'gtol': 1e-16,
+                     'norm': -np.inf}
         )
+
+        weights = res.x
+
+        print('===================================================================')
+        if res.success:
+            print('optimisation converged!')
+        else:
+            print('optimisation not converged!')
+
+        np.set_printoptions(precision=8)
+        print('gradient is:')
+        print(_gradient(weights, X_, target, k))
+        print('mean target is:')
+        print(np.mean(target, axis=0))
+        print('mean output is:')
+        print(np.mean(_calculate_outputs(_get_weights(weights, k), X_), axis=0))
+        print('===================================================================')
 
         self.weights_ = _get_weights(weights, k)
         self.coef_ = self.weights_.transpose()[:, :-1]
@@ -103,9 +124,9 @@ def _gradient(params, *args):
     outputs = _calculate_outputs(weights, X)
     graident = np.zeros((k + 1, k - 1))
     for i in range(0, k - 1):
-        graident[:k, i] = np.sum((outputs[:, i] - y[:, i]).repeat(k, axis=1) * X, aixs=0)
-    graident[k, :] = np.sum(outputs - y, axis=0)
-    print(graident)
+        graident[:k, i] = np.sum((outputs[:, i] - y[:, i]).reshape(-1, 1).repeat(k, axis=1) * X[:, :k], axis=0)
+    graident[k, :] = np.sum(outputs - y, axis=0)[:-1]
+    #print(graident)
     return graident.ravel()
 
 
