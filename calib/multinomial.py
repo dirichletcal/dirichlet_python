@@ -32,7 +32,7 @@ class MultinomialRegression(BaseEstimator, RegressorMixin):
         else:
             weights_0 = self.weights_0_
 
-        weights_0 = weights_0.ravel()
+        weights_0 = weights_0.transpose().ravel()
 
         # if self.bounds_ is None:
         #    dims = (k+1, k-1)
@@ -53,17 +53,21 @@ class MultinomialRegression(BaseEstimator, RegressorMixin):
         #    bounds = self.bounds_
 
         res = minimize(
-            method='BFGS',
+            method='trust-exact',
             fun=_objective,
             jac=_gradient,
+            hess=_hessian,
             x0=weights_0,
             args=(X_, target, k),
             bounds=None,
-            tol=1e-16,
-            options={'maxiter': 50000,
-                     'disp': True,
-                     'gtol': 1e-16,
-                     'norm': -np.inf}
+            #tol=1e-16,
+            options={'disp': False,
+                     'initial_trust_radius': 1.0,
+                     'max_trust_radius': 1e32,
+                     'change_ratio': 1 - 1e-3,
+                     'eta': 0.0,
+                     'maxiter': 1e4,
+                     'gtol': 1e-8}
         )
 
         weights = res.x
@@ -74,13 +78,15 @@ class MultinomialRegression(BaseEstimator, RegressorMixin):
         else:
             print('optimisation not converged!')
 
-        np.set_printoptions(precision=8)
+        np.set_printoptions(precision=3)
         print('gradient is:')
-        print(_gradient(weights, X_, target, k))
+        print(_gradient(weights, X_, target, k).reshape(-1, k+1).transpose())
         print('mean target is:')
         print(np.mean(target, axis=0))
         print('mean output is:')
         print(np.mean(_calculate_outputs(_get_weights(weights, k), X_), axis=0))
+        print('reason for termination:')
+        print(res.message)
         print('===================================================================')
 
         self.weights_ = _get_weights(weights, k)
@@ -99,7 +105,7 @@ class MultinomialRegression(BaseEstimator, RegressorMixin):
 def _get_weights(params, k):
     n_params = len(params)
     if n_params == k ** 2 - 1:
-        return params.reshape(-1, k - 1)
+        return params.reshape(-1, k + 1).transpose()
     else:
         value = params[-1]
         intercepts = params[:-1]
@@ -115,6 +121,10 @@ def _objective(params, *args):
     weights = _get_weights(params, k)
     outputs = _calculate_outputs(weights, X)
     loss = log_loss(y, outputs)
+    #print('Loss is:')
+    #print(loss)
+    #print('Parameter is:')
+    #print(weights)
     return loss
 
 
@@ -124,10 +134,35 @@ def _gradient(params, *args):
     outputs = _calculate_outputs(weights, X)
     graident = np.zeros((k + 1, k - 1))
     for i in range(0, k - 1):
-        graident[:k, i] = np.sum((outputs[:, i] - y[:, i]).reshape(-1, 1).repeat(k, axis=1) * X[:, :k], axis=0)
-    graident[k, :] = np.sum(outputs - y, axis=0)[:-1]
+        graident[:, i] = np.sum((outputs[:, i] - y[:, i]).reshape(-1, 1).repeat(k+1, axis=1) * X, axis=0)
     #print(graident)
-    return graident.ravel()
+    return graident.transpose().ravel()
+
+
+def _hessian(params, *args):
+    (X, y, k) = args
+    weights = _get_weights(params, k)
+    outputs = _calculate_outputs(weights, X)
+    hessian = np.zeros((k**2 - 1, k**2 - 1))
+    n = np.shape(X)[0]
+    XXT = np.zeros((n, k+1, k+1))
+    for i in range(0, n):
+        XXT[i, :, :] = np.matmul(X[i, :].reshape(-1, 1), X[i, :].reshape(-1, 1).transpose())
+    for i in range(0, k-1):
+        for j in range(0, k-1):
+            if i <= j:
+                tmp_diff = outputs[:, i] * (int(i == j) - outputs[:, j])
+                tmp_diff = tmp_diff.ravel().repeat((k+1)**2).reshape(n, k+1, k+1)
+                hessian[i*(k+1):(i+1)*(k+1), j*(k+1):(j+1)*(k+1)] = np.sum(tmp_diff * XXT, axis=0)
+            else:
+                hessian[i*(k+1):(i+1)*(k+1), j*(k+1):(j+1)*(k+1)] = hessian[j*(k+1):(j+1)*(k+1), i*(k+1):(i+1)*(k+1)]
+
+    #np.set_printoptions(precision=1)
+    #print('hessian is:')
+    #if not (np.all(np.linalg.eigvals(hessian) > 0)):
+    #    print('non-positive-definite Hessian is detected!')
+    #print(hessian)
+    return hessian
 
 
 def _calculate_outputs(weights, X):
