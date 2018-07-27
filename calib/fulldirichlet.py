@@ -11,7 +11,7 @@ class FullDirichletCalibrator(BaseEstimator, RegressorMixin):
     def fit(self, X, y, *args, **kwargs):
         eps = np.finfo(X.dtype).eps
         X_ = np.log(np.clip(X, eps, 1-eps))
-        self.calibrator_ = MultinomialRegression().fit(X_, y, *args, **kwargs)
+        self.calibrator_ = MultinomialRegression(method='Full').fit(X_, y, *args, **kwargs)
         self.coef_ = self.calibrator_.coef_
         self.intercept_ = self.calibrator_.intercept_
 
