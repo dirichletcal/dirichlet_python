@@ -257,9 +257,9 @@ class MultinomialRegression(BaseEstimator, RegressorMixin):
                 options={'disp': False,
                     'initial_trust_radius': 1.0,
                     'max_trust_radius': 1e32,
-                    'change_ratio': 1 - 1e-3,
+                    'change_ratio': 1 - 1e-4,
                     'eta': 0.0,
-                    'maxiter': 1e4,
+                    'maxiter': 5e4,
                     'gtol': 1e-8}
                 )
         
@@ -286,6 +286,8 @@ class MultinomialRegression(BaseEstimator, RegressorMixin):
         print(np.mean(target, axis=0))
         print('mean output is:')
         print(np.mean(_calculate_outputs(_get_weights(weights, k, self.method_), X_), axis=0))
+        print('obtained paprameters are:')
+        print(_get_weights(weights, k, self.method_))
         print('reason for termination:')
         print(res.message)
         print('===================================================================')
@@ -321,13 +323,13 @@ def _get_weights(params, k, method):
 
         weights[:-1, -1] = tmp_params[:, 1]
 
-        weights[-1, k] = params[-1]
+        weights[-1, k - 1] = params[-1]
 
     elif method is 'FixDiag':
         
         weights = np.zeros([k, k])
 
-        weights[np.diag_indices(k)] = params[0]
+        weights[np.diag_indices(k - 1)] = params[0]
 
         weights[:-1, -1] = params[1:]
 
@@ -425,6 +427,14 @@ def _hessian(params, *args):
                         hessian[i * 2: (i + 1) * 2, j * 2: (j + 1) * 2] = np.sum(-tmp_product * sub_XXT_2, axis=0)
                 else:
                         hessian[i * 2: (i + 1) * 2, j * 2: (j + 1) * 2] = hessian[j * 2: (j + 1) * 2, i * 2: (i + 1) * 2]
+
+        for i in range(0, k - 1):
+            sub_XXT = XXT[:, [k - 1, k - 1], [i, k]].reshape(-1, 2, 1)
+            tmp_product = (outputs[:, i] * outputs[:, -1]).ravel().repeat(2).reshape(n, 2, 1)
+            hessian[i * 2: (i + 1) * 2, -1] = np.sum(-tmp_product * sub_XXT, axis=0).ravel()
+            hessian[-1, i * 2: (i + 1) * 2] = hessian[i * 2: (i + 1) * 2, -1]
+
+        hessian[-1, -1] = np.sum(outputs[:, -1] * XXT[:, k - 1, k - 1] - outputs[:, -1] * outputs[:, -1] * XXT[:, k - 1, k - 1])
 
     elif method is 'FixDiag':
 
