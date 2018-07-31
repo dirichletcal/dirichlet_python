@@ -1,5 +1,7 @@
 from __future__ import division
 
+import logging
+
 import numpy as np
 from sklearn.base import BaseEstimator, RegressorMixin
 from sklearn.preprocessing import label_binarize
@@ -9,6 +11,7 @@ from scipy.optimize import minimize
 
 import scipy
 import scipy.optimize
+
 
 def new_minimize_trust_region(fun, x0, args=(), jac=None, hess=None, hessp=None,
                            subproblem=None, initial_trust_radius=1.0,
@@ -42,7 +45,9 @@ def new_minimize_trust_region(fun, x0, args=(), jac=None, hess=None, hessp=None,
     This function is called by the `minimize` function.
     It is not supposed to be called directly.
     """
-    print('new_minimize_trust_region')
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.debug('new_minimize_trust_region')
     _check_unknown_options(unknown_options)
 
     if jac is None:
@@ -155,14 +160,14 @@ def new_minimize_trust_region(fun, x0, args=(), jac=None, hess=None, hessp=None,
             )
     if disp:
         if warnflag == 0:
-            print(status_messages[warnflag])
+            logger.debug(status_messages[warnflag])
         else:
-            print('Warning: ' + status_messages[warnflag])
-        print("         Current function value: %f" % m.fun)
-        print("         Iterations: %d" % k)
-        print("         Function evaluations: %d" % nfun[0])
-        print("         Gradient evaluations: %d" % njac[0])
-        print("         Hessian evaluations: %d" % nhess[0])
+            logger.debug('Warning: ' + status_messages[warnflag])
+        logger.debug("         Current function value: %f" % m.fun)
+        logger.debug("         Iterations: %d" % k)
+        logger.debug("         Function evaluations: %d" % nfun[0])
+        logger.debug("         Gradient evaluations: %d" % njac[0])
+        logger.debug("         Hessian evaluations: %d" % nhess[0])
 
     result = OptimizeResult(x=x, success=(warnflag == 0), status=warnflag,
                             fun=m.fun, jac=m.jac, nfev=nfun[0], njev=njac[0],
@@ -190,6 +195,8 @@ class MultinomialRegression(BaseEstimator, RegressorMixin):
         self.method_ = method
 
     def fit(self, X, y, *args, **kwargs):
+        import logging
+        logger = logging.getLogger(__name__)
 
         X_ = np.hstack((X, np.ones((len(X), 1))))
 
@@ -203,7 +210,7 @@ class MultinomialRegression(BaseEstimator, RegressorMixin):
             target = np.hstack([target, 1-target])
 
         if self.weights_0_ is None:
-            
+
             if self.method_ is 'Full':
 
                 weights_0 = np.random.randn((k - 1) * (k + 1))
@@ -211,7 +218,7 @@ class MultinomialRegression(BaseEstimator, RegressorMixin):
                 weights_0 = _get_weights(weights_0, k, self.method_)
 
                 weights_0[np.diag_indices(k - 1)] = np.abs(weights_0[np.diag_indices(k - 1)])
-                
+
                 weights_0[:, k - 1] = np.abs(weights_0[:, k - 1]) * -1
 
             elif self.method_ is 'Diag':
@@ -243,7 +250,7 @@ class MultinomialRegression(BaseEstimator, RegressorMixin):
             XXT[i, :, :] = np.matmul(X_[i, :].reshape(-1, 1), X_[i, :].reshape(-1, 1).transpose())
 
 
-        print(self.method_)
+        logger.debug(self.method_)
 
         res = minimize(
                 method='trust-exact',
@@ -262,7 +269,7 @@ class MultinomialRegression(BaseEstimator, RegressorMixin):
                     'maxiter': 5e4,
                     'gtol': 1e-8}
                 )
-        
+
         #res = minimize(
         #    method='BFGS',
         #    fun=_objective,
@@ -273,24 +280,24 @@ class MultinomialRegression(BaseEstimator, RegressorMixin):
 
         weights = res.x
 
-        print('===================================================================')
+        logger.debug('===================================================================')
         if res.success:
-            print('optimisation converged!')
+            logger.debug('optimisation converged!')
         else:
-            print('optimisation not converged!')
+            logger.debug('optimisation not converged!')
 
         np.set_printoptions(precision=3)
-        print('gradient is:')
-        print(_gradient(weights, X_, XXT, target, k, self.method_))
-        print('mean target is:')
-        print(np.mean(target, axis=0))
-        print('mean output is:')
-        print(np.mean(_calculate_outputs(_get_weights(weights, k, self.method_), X_), axis=0))
-        print('obtained paprameters are:')
-        print(_get_weights(weights, k, self.method_))
-        print('reason for termination:')
-        print(res.message)
-        print('===================================================================')
+        logger.debug('gradient is:')
+        logger.debug(_gradient(weights, X_, XXT, target, k, self.method_))
+        logger.debug('mean target is:')
+        logger.debug(np.mean(target, axis=0))
+        logger.debug('mean output is:')
+        logger.debug(np.mean(_calculate_outputs(_get_weights(weights, k, self.method_), X_), axis=0))
+        logger.debug('obtained paprameters are:')
+        logger.debug(_get_weights(weights, k, self.method_))
+        logger.debug('reason for termination:')
+        logger.debug(res.message)
+        logger.debug('===================================================================')
 
         self.weights_ = _get_weights(weights, k, self.method_)
         self.coef_ = self.weights_[:, :-1]
@@ -310,11 +317,11 @@ def _get_weights(params, k, method):
     if method is 'Full':
 
         weights = np.zeros([k, k+1])
-        
+
         weights[:-1, :] = params.reshape(-1, k + 1)
 
     elif method is 'Diag':
-        
+
         weights = np.zeros([k, k+1])
 
         tmp_params = params[:-1].reshape(-1, 2)
@@ -326,7 +333,7 @@ def _get_weights(params, k, method):
         weights[-1, k - 1] = params[-1]
 
     elif method is 'FixDiag':
-        
+
         weights = np.zeros([k, k])
 
         weights[np.diag_indices(k - 1)] = params[0]
@@ -341,10 +348,10 @@ def _objective(params, *args):
     weights = _get_weights(params, k, method)
     outputs = _calculate_outputs(weights, X)
     loss = log_loss(y, outputs)
-    #print('Loss is:')
-    #print(loss)
-    #print('Parameter is:')
-    #print(weights)
+    #logger.debug('Loss is:')
+    #logger.debug(loss)
+    #logger.debug('Parameter is:')
+    #logger.debug(weights)
     return loss
 
 
@@ -374,7 +381,7 @@ def _gradient(params, *args):
         gradient[-1] = np.sum((outputs[:, i] - y[:, i]) * X[:, k])
 
     elif method is 'FixDiag':
-        
+
         gradient = np.random.randn(k)
 
         gradient[0] = np.sum((outputs[:, :-1] - y[:, :-1]) * X[:, :-1])
@@ -383,7 +390,7 @@ def _gradient(params, *args):
 
             gradient[i + 1] = np.sum((outputs[:, i] - y[:, i]) * X[:, k - 1])
 
-    #print(graident)
+    #logger.debug(graident)
 
     return gradient
 
@@ -451,27 +458,27 @@ def _hessian(params, *args):
         tmp_product = np.sum(outputs[:, :-1] * X[:, :-1], axis=1).reshape(-1, 1).repeat(k - 1, 1) * outputs[:, :-1] * X[:, :-1]
 
         hessian[0, 0] = np.sum(np.sum(outputs[:, :-1] * (X[:, :-1] ** 2), axis=1) - np.sum(tmp_product, axis=1))
-        
+
         tmp_product = np.sum(outputs[:, :-1] * X[:, :-1], axis=1).reshape(-1, 1).repeat(k - 1, 1) * outputs[:, :-1] * X[:, -1].reshape(-1, 1).repeat(k - 1, 1)
-        
+
         for i in range(0, k - 1):
             hessian[0, i + 1] = np.sum(outputs[:, i] * X[:, i] * X[:, -1] - tmp_product[:, i])
             hessian[i + 1, 0] = hessian[0, i + 1]
 
     #np.set_printoptions(precision=1)
-    #print('hessian is:')
+    #logger.debug('hessian is:')
     #if not (np.all(np.linalg.eigvals(hessian) > 0)):
-    #    print('non-positive-definite Hessian is detected!')
-    #print(hessian)
+    #    logger.debug('non-positive-definite Hessian is detected!')
+    #logger.debug(hessian)
     return hessian
 
 
 def _calculate_outputs(weights, X):
-    
+
     k = np.shape(weights)[0]
-    
+
     mul = np.dot(X, weights.transpose())
-    
+
     return _softmax(mul)
 
 
