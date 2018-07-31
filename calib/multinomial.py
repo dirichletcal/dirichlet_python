@@ -195,7 +195,6 @@ class MultinomialRegression(BaseEstimator, RegressorMixin):
         self.method_ = method
 
     def fit(self, X, y, *args, **kwargs):
-        import logging
         logger = logging.getLogger(__name__)
 
         X_ = np.hstack((X, np.ones((len(X), 1))))
@@ -266,7 +265,7 @@ class MultinomialRegression(BaseEstimator, RegressorMixin):
                     'max_trust_radius': 1e32,
                     'change_ratio': 1 - 1e-4,
                     'eta': 0.0,
-                    'maxiter': 5e4,
+                    'maxiter': 1e3,
                     'gtol': 1e-8}
                 )
 
@@ -356,6 +355,8 @@ def _objective(params, *args):
 
 
 def _gradient(params, *args):
+    import logging
+    logger = logging.getLogger(__name__)
     (X, _, y, k, method) = args
     weights = _get_weights(params, k, method)
     outputs = _calculate_outputs(weights, X)
@@ -390,12 +391,14 @@ def _gradient(params, *args):
 
             gradient[i + 1] = np.sum((outputs[:, i] - y[:, i]) * X[:, k - 1])
 
-    #logger.debug(graident)
-
+    logger.debug(gradient)
+    np.nan_to_num(gradient, copy=False)
     return gradient
 
 
 def _hessian(params, *args):
+    import logging
+    logger = logging.getLogger(__name__)
     (X, XXT, y, k, method) = args
     weights = _get_weights(params, k, method)
     outputs = _calculate_outputs(weights, X)
@@ -469,7 +472,8 @@ def _hessian(params, *args):
     #logger.debug('hessian is:')
     #if not (np.all(np.linalg.eigvals(hessian) > 0)):
     #    logger.debug('non-positive-definite Hessian is detected!')
-    #logger.debug(hessian)
+    logger.debug(hessian)
+    np.nan_to_num(hessian, copy=False)
     return hessian
 
 
