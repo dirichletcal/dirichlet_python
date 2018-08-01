@@ -256,7 +256,7 @@ class MultinomialRegression(BaseEstimator, RegressorMixin):
         logger.debug(self.method_)
 
         res = minimize(
-                method='trust-exact',
+                method='trust-krylov',
                 fun=_objective,
                 jac=_gradient,
                 hess=_hessian,
@@ -274,10 +274,10 @@ class MultinomialRegression(BaseEstimator, RegressorMixin):
                 options={'disp': False,
                     'initial_trust_radius': 1.0,
                     'max_trust_radius': 1e32,
-                    'change_ratio': 1 - 1e-4,
+                    'change_ratio': 1 - 1e-3,
                     'eta': 0.0,
-                    'maxiter': 1e3,
-                    'gtol': 1e-8}
+                    'maxiter': 1e4,
+                    'gtol': 1e-3}
                 )
 
         #res = minimize(
@@ -357,6 +357,8 @@ def _objective(params, *args):
     (X, _, y, k, method) = args
     weights = _get_weights(params, k, method)
     outputs = _calculate_outputs(weights, X)
+    eps = np.finfo(outputs.dtype).eps
+    outputs = np.clip(outputs, eps, 1-eps)
     loss = log_loss(y, outputs)
     #logger.debug('Loss is:')
     #logger.debug(loss)
@@ -402,7 +404,7 @@ def _gradient(params, *args):
 
             gradient[i + 1] = np.sum((outputs[:, i] - y[:, i]) * X[:, k - 1])
 
-    logger.debug(gradient)
+    #logger.debug(gradient)
     np.nan_to_num(gradient, copy=False)
     return gradient
 
@@ -483,7 +485,7 @@ def _hessian(params, *args):
     #logger.debug('hessian is:')
     #if not (np.all(np.linalg.eigvals(hessian) > 0)):
     #    logger.debug('non-positive-definite Hessian is detected!')
-    logger.debug(hessian)
+    #logger.debug(hessian)
     np.nan_to_num(hessian, copy=False)
     return hessian
 
