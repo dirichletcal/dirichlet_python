@@ -103,6 +103,10 @@ def new_minimize_trust_region(fun, x0, args=(), jac=None, hess=None, hessp=None,
         # and it tells us whether the proposed step
         # has reached the trust region boundary or not.
         try:
+            if np.isnan(trust_radius).any():
+                logger.debug(trust_radius)
+            # FIXME Ocasionally the inner computation overflows
+            # OverflowError: (34, 'Numerical result out of range')
             p, hits_boundary = m.solve(trust_radius)
         except np.linalg.linalg.LinAlgError as e:
             warnflag = 3
@@ -260,6 +264,13 @@ class MultinomialRegression(BaseEstimator, RegressorMixin):
                 args=(X_, XXT, target, k, self.method_),
                 bounds=None,
                 #tol=1e-16,
+                #options={'disp': False,
+                #    'initial_trust_radius': 1.0,
+                #    'max_trust_radius': 1e32,
+                #    'change_ratio': 1 - 1e-2,
+                #    'eta': 0.0,
+                #    'maxiter': 1e2,
+                #    'gtol': 1e-6}
                 options={'disp': False,
                     'initial_trust_radius': 1.0,
                     'max_trust_radius': 1e32,
