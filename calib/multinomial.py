@@ -275,7 +275,6 @@ class MultinomialRegression(BaseEstimator, RegressorMixin):
                     'eta': 0.0,
                     'maxiter': 5e4,
                     'gtol': 1e-8}
-                        }
                 )
 
         #res = minimize(
