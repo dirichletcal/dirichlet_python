@@ -120,7 +120,11 @@ def new_minimize_trust_region(fun, x0, args=(), jac=None, hess=None, hessp=None,
         m_proposed = subproblem(x_proposed, fun, jac, hess, hessp)
 
         # evaluate the ratio defined in equation (4.4)
-        actual_reduction = m.fun - m_proposed.fun
+        try:
+            actual_reduction = m.fun - m_proposed.fun
+        except ValueError as e:
+            print(e)
+            raise e
         predicted_reduction = m.fun - predicted_value
         if predicted_reduction <= 0:
             warnflag = 2
@@ -264,20 +268,14 @@ class MultinomialRegression(BaseEstimator, RegressorMixin):
                 args=(X_, XXT, target, k, self.method_),
                 bounds=None,
                 #tol=1e-16,
-                #options={'disp': False,
-                #    'initial_trust_radius': 1.0,
-                #    'max_trust_radius': 1e32,
-                #    'change_ratio': 1 - 1e-2,
-                #    'eta': 0.0,
-                #    'maxiter': 1e2,
-                #    'gtol': 1e-6}
                 options={'disp': False,
                     'initial_trust_radius': 1.0,
                     'max_trust_radius': 1e32,
-                    'change_ratio': 1 - 1e-3,
+                    'change_ratio': 1 - 1e-4,
                     'eta': 0.0,
-                    'maxiter': 1e4,
-                    'gtol': 1e-3}
+                    'maxiter': 5e4,
+                    'gtol': 1e-8}
+                        }
                 )
 
         #res = minimize(
@@ -296,18 +294,18 @@ class MultinomialRegression(BaseEstimator, RegressorMixin):
         else:
             logger.debug('optimisation not converged!')
 
-        np.set_printoptions(precision=3)
-        logger.debug('gradient is:')
-        logger.debug(_gradient(weights, X_, XXT, target, k, self.method_))
-        logger.debug('mean target is:')
-        logger.debug(np.mean(target, axis=0))
-        logger.debug('mean output is:')
-        logger.debug(np.mean(_calculate_outputs(_get_weights(weights, k, self.method_), X_), axis=0))
-        logger.debug('obtained paprameters are:')
-        logger.debug(_get_weights(weights, k, self.method_))
+        #np.set_printoptions(precision=3)
+        #logger.debug('gradient is:')
+        #logger.debug(_gradient(weights, X_, XXT, target, k, self.method_))
+        #logger.debug('mean target is:')
+        #logger.debug(np.mean(target, axis=0))
+        #logger.debug('mean output is:')
+        #logger.debug(np.mean(_calculate_outputs(_get_weights(weights, k, self.method_), X_), axis=0))
+        #logger.debug('obtained paprameters are:')
+        #logger.debug(_get_weights(weights, k, self.method_))
         logger.debug('reason for termination:')
         logger.debug(res.message)
-        logger.debug('===================================================================')
+        #logger.debug('===================================================================')
 
         self.weights_ = _get_weights(weights, k, self.method_)
         self.coef_ = self.weights_[:, :-1]
