@@ -259,23 +259,23 @@ class MultinomialRegression(BaseEstimator, RegressorMixin):
 
         logger.debug(self.method_)
 
-        res = minimize(
-                method='trust-krylov',
-                fun=_objective,
-                jac=_gradient,
-                hess=_hessian,
-                x0=weights_0,
-                args=(X_, XXT, target, k, self.method_),
-                bounds=None,
-                #tol=1e-16,
-                options={'disp': False,
-                    'initial_trust_radius': 1.0,
-                    'max_trust_radius': 1e32,
-                    'change_ratio': 1 - 1e-4,
-                    'eta': 0.0,
-                    'maxiter': 5e4,
-                    'gtol': 1e-8}
-                )
+        # res = minimize(
+        #         method='trust-krylov',
+        #         fun=_objective,
+        #         jac=_gradient,
+        #         hess=_hessian,
+        #         x0=weights_0,
+        #         args=(X_, XXT, target, k, self.method_),
+        #         bounds=None,
+        #         #tol=1e-16,
+        #         options={'disp': False,
+        #             'initial_trust_radius': 1.0,
+        #             'max_trust_radius': 1e32,
+        #             'change_ratio': 1 - 1e-4,
+        #             'eta': 0.0,
+        #             'maxiter': 5e4,
+        #             'gtol': 1e-8}
+        #         )
 
         #res = minimize(
         #    method='BFGS',
@@ -285,13 +285,17 @@ class MultinomialRegression(BaseEstimator, RegressorMixin):
         #    args=(X_, XXT, target, k, self.method_),
         #)
 
-        weights = res.x
+        # weights = res.x
 
-        logger.debug('===================================================================')
-        if res.success:
-            logger.debug('optimisation converged!')
-        else:
-            logger.debug('optimisation not converged!')
+        weights_0 = np.zeros_like(weights_0)
+
+        weights = _newton_update(weights_0, X_, XXT, target, k, self.method_)
+
+        # logger.debug('===================================================================')
+        # if res.success:
+        #     logger.debug('optimisation converged!')
+        # else:
+        #     logger.debug('optimisation not converged!')
 
         #np.set_printoptions(precision=3)
         #logger.debug('gradient is:')
@@ -302,8 +306,8 @@ class MultinomialRegression(BaseEstimator, RegressorMixin):
         #logger.debug(np.mean(_calculate_outputs(_get_weights(weights, k, self.method_), X_), axis=0))
         #logger.debug('obtained paprameters are:')
         #logger.debug(_get_weights(weights, k, self.method_))
-        logger.debug('reason for termination:')
-        logger.debug(res.message)
+        # logger.debug('reason for termination:')
+        # logger.debug(res.message)
         #logger.debug('===================================================================')
 
         self.weights_ = _get_weights(weights, k, self.method_)
@@ -317,6 +321,61 @@ class MultinomialRegression(BaseEstimator, RegressorMixin):
 
     def predict(self, S):
         return self.predict_proba(S)
+    
+
+def _newton_update(weights_0, X, XX_T, target, k, method_, maxiter=int(1e3), ftol=1e-12, gtol=1e-3):
+
+    L_list = [_objective(weights_0, X, XX_T, target, k, method_)]
+
+    weights = weights_0.copy()
+
+    for i in range(0, maxiter):
+
+        gradient = _gradient(weights, X, XX_T, target, k, method_)
+
+        if np.abs(gradient).sum() < gtol:
+            break
+
+        hessian = _hessian(weights, X, XX_T, target, k, method_)
+
+        for step_size in np.hstack((np.linspace(1, 0.1, 10),
+                                    np.linspace(0.09, 0.01, 9),
+                                    np.linspace(0.009, 0.001, 9),
+                                    np.linspace(0.0009, 0.0001, 9),
+                                    np.linspace(0.00009, 0.00001, 9),
+                                    np.linspace(0.000009, 0.000001, 9),
+                                    1e-8, 1e-16, 1e-32)):
+
+            updates = (np.matmul(scipy.linalg.pinv2(hessian), gradient.reshape(-1, 1)) * step_size).ravel()
+
+            tmp_w = weights - updates
+
+            L = _objective(tmp_w, X, XX_T, target, k, method_)
+
+            if (L - L_list[-1]) < 0:
+                break
+
+        L_list.append(L)
+
+        print([i, L, np.abs(gradient).sum()])
+
+        if i >= 5:
+            if (np.min(np.diff(L_list[-5:])) > -ftol) & (np.sum(np.diff(L_list[-5:]) > 0) == 0):
+                weights = tmp_w.copy()
+                # print('terminate as there is not enough changes on Psi.')
+                break
+
+        if np.sum(np.diff(L_list[-2:]) > 0) == 1:
+            # print('terminate as the loss increased.')
+            break
+        else:
+            weights = tmp_w.copy()
+
+    print('Current Gradients Are:')
+
+    print(gradient)
+
+    return weights
 
 
 def _get_weights(params, k, method):
