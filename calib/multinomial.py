@@ -1,6 +1,8 @@
 from __future__ import division
 
 import logging
+logger = logging.getLogger(__name__)
+
 
 import numpy as np
 from sklearn.base import BaseEstimator, RegressorMixin
@@ -323,7 +325,8 @@ class MultinomialRegression(BaseEstimator, RegressorMixin):
         return self.predict_proba(S)
     
 
-def _newton_update(weights_0, X, XX_T, target, k, method_, maxiter=int(1e3), ftol=1e-12, gtol=1e-3):
+def _newton_update(weights_0, X, XX_T, target, k, method_, maxiter=int(1e3),
+                   ftol=1e-12, gtol=1e-12):
 
     L_list = [_objective(weights_0, X, XX_T, target, k, method_)]
 
@@ -357,23 +360,23 @@ def _newton_update(weights_0, X, XX_T, target, k, method_, maxiter=int(1e3), fto
 
         L_list.append(L)
 
-        print([i, L, np.abs(gradient).sum()])
+        logger.debug({'iteration': i, 'loss': L, 'sum(abs(grad))':
+                      np.abs(gradient).sum()})
 
         if i >= 5:
             if (np.min(np.diff(L_list[-5:])) > -ftol) & (np.sum(np.diff(L_list[-5:]) > 0) == 0):
                 weights = tmp_w.copy()
-                # print('terminate as there is not enough changes on Psi.')
+                logger.debug('terminate as there is not enough changes on Psi.')
                 break
 
         if np.sum(np.diff(L_list[-2:]) > 0) == 1:
-            # print('terminate as the loss increased.')
+            logger.debug('terminate as the loss increased.')
             break
         else:
             weights = tmp_w.copy()
 
-    print('Current Gradients Are:')
-
-    print(gradient)
+    logger.debug('Current Gradients Are:')
+    logger.debug(gradient)
 
     return weights
 
