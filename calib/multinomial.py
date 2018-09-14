@@ -216,7 +216,7 @@ class MultinomialRegression(BaseEstimator, RegressorMixin):
         target = label_binarize(y, classes)
 
         if k == 2:
-            target = np.hstack([target, 1-target])
+            target = np.hstack([1-target, target])
 
         if self.weights_0_ is None:
 
