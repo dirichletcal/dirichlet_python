@@ -6,9 +6,6 @@ from dirichlet.calib.fulldirichlet import FullDirichletCalibrator
 from dirichlet.calib.diagdirichlet import DiagonalDirichletCalibrator
 from dirichlet.calib.fixeddirichlet import FixedDiagonalDirichletCalibrator
 
-logging.basicConfig(level=logging.DEBUG)
-logger = logging.getLogger(__name__)
-
 
 class DirichletCalibrator(BaseEstimator, RegressorMixin):
     def __init__(self, matrix_type='full'):

@@ -1,8 +1,6 @@
 from __future__ import division
 
 import logging
-logger = logging.getLogger(__name__)
-
 
 import numpy as np
 from sklearn.base import BaseEstimator, RegressorMixin
@@ -13,6 +11,8 @@ from scipy.optimize import minimize
 
 import scipy
 import scipy.optimize
+
+from ..utils import clip
 
 
 def new_minimize_trust_region(fun, x0, args=(), jac=None, hess=None, hessp=None,
@@ -47,9 +47,7 @@ def new_minimize_trust_region(fun, x0, args=(), jac=None, hess=None, hessp=None,
     This function is called by the `minimize` function.
     It is not supposed to be called directly.
     """
-    import logging
-    logger = logging.getLogger(__name__)
-    logger.debug('new_minimize_trust_region')
+    logging.debug('new_minimize_trust_region')
     _check_unknown_options(unknown_options)
 
     if jac is None:
@@ -106,7 +104,7 @@ def new_minimize_trust_region(fun, x0, args=(), jac=None, hess=None, hessp=None,
         # has reached the trust region boundary or not.
         try:
             if np.isnan(trust_radius).any():
-                logger.debug(trust_radius)
+                logging.debug(trust_radius)
             # FIXME Ocasionally the inner computation overflows
             # OverflowError: (34, 'Numerical result out of range')
             p, hits_boundary = m.solve(trust_radius)
@@ -170,14 +168,14 @@ def new_minimize_trust_region(fun, x0, args=(), jac=None, hess=None, hessp=None,
             )
     if disp:
         if warnflag == 0:
-            logger.debug(status_messages[warnflag])
+            logging.debug(status_messages[warnflag])
         else:
-            logger.debug('Warning: ' + status_messages[warnflag])
-        logger.debug("         Current function value: %f" % m.fun)
-        logger.debug("         Iterations: %d" % k)
-        logger.debug("         Function evaluations: %d" % nfun[0])
-        logger.debug("         Gradient evaluations: %d" % njac[0])
-        logger.debug("         Hessian evaluations: %d" % nhess[0])
+            logging.debug('Warning: ' + status_messages[warnflag])
+        logging.debug("         Current function value: %f" % m.fun)
+        logging.debug("         Iterations: %d" % k)
+        logging.debug("         Function evaluations: %d" % nfun[0])
+        logging.debug("         Gradient evaluations: %d" % njac[0])
+        logging.debug("         Hessian evaluations: %d" % nhess[0])
 
     result = OptimizeResult(x=x, success=(warnflag == 0), status=warnflag,
                             fun=m.fun, jac=m.jac, nfev=nfun[0], njev=njac[0],
@@ -205,8 +203,6 @@ class MultinomialRegression(BaseEstimator, RegressorMixin):
         self.method_ = method
 
     def fit(self, X, y, *args, **kwargs):
-        logger = logging.getLogger(__name__)
-
         X_ = np.hstack((X, np.ones((len(X), 1))))
 
         classes = np.unique(y)
@@ -259,7 +255,7 @@ class MultinomialRegression(BaseEstimator, RegressorMixin):
             XXT[i, :, :] = np.matmul(X_[i, :].reshape(-1, 1), X_[i, :].reshape(-1, 1).transpose())
 
 
-        logger.debug(self.method_)
+        logging.debug(self.method_)
 
         # res = minimize(
         #         method='trust-krylov',
@@ -293,24 +289,24 @@ class MultinomialRegression(BaseEstimator, RegressorMixin):
 
         weights = _newton_update(weights_0, X_, XXT, target, k, self.method_)
 
-        # logger.debug('===================================================================')
+        # logging.debug('===================================================================')
         # if res.success:
-        #     logger.debug('optimisation converged!')
+        #     logging.debug('optimisation converged!')
         # else:
-        #     logger.debug('optimisation not converged!')
+        #     logging.debug('optimisation not converged!')
 
         #np.set_printoptions(precision=3)
-        #logger.debug('gradient is:')
-        #logger.debug(_gradient(weights, X_, XXT, target, k, self.method_))
-        #logger.debug('mean target is:')
-        #logger.debug(np.mean(target, axis=0))
-        #logger.debug('mean output is:')
-        #logger.debug(np.mean(_calculate_outputs(_get_weights(weights, k, self.method_), X_), axis=0))
-        #logger.debug('obtained paprameters are:')
-        #logger.debug(_get_weights(weights, k, self.method_))
-        # logger.debug('reason for termination:')
-        # logger.debug(res.message)
-        #logger.debug('===================================================================')
+        #logging.debug('gradient is:')
+        #logging.debug(_gradient(weights, X_, XXT, target, k, self.method_))
+        #logging.debug('mean target is:')
+        #logging.debug(np.mean(target, axis=0))
+        #logging.debug('mean output is:')
+        #logging.debug(np.mean(_calculate_outputs(_get_weights(weights, k, self.method_), X_), axis=0))
+        #logging.debug('obtained paprameters are:')
+        #logging.debug(_get_weights(weights, k, self.method_))
+        # logging.debug('reason for termination:')
+        # logging.debug(res.message)
+        #logging.debug('===================================================================')
 
         self.weights_ = _get_weights(weights, k, self.method_)
         self.coef_ = self.weights_[:, :-1]
@@ -323,7 +319,7 @@ class MultinomialRegression(BaseEstimator, RegressorMixin):
 
     def predict(self, S):
         return self.predict_proba(S)
-    
+
 
 def _newton_update(weights_0, X, XX_T, target, k, method_, maxiter=int(1e3),
                    ftol=1e-12, gtol=1e-12):
@@ -360,23 +356,23 @@ def _newton_update(weights_0, X, XX_T, target, k, method_, maxiter=int(1e3),
 
         L_list.append(L)
 
-        logger.debug({'iteration': i, 'loss': L, 'sum(abs(grad))':
+        logging.debug({'iteration': i, 'loss': L, 'sum(abs(grad))':
                       np.abs(gradient).sum()})
 
         if i >= 5:
             if (np.min(np.diff(L_list[-5:])) > -ftol) & (np.sum(np.diff(L_list[-5:]) > 0) == 0):
                 weights = tmp_w.copy()
-                logger.debug('terminate as there is not enough changes on Psi.')
+                logging.debug('terminate as there is not enough changes on Psi.')
                 break
 
         if np.sum(np.diff(L_list[-2:]) > 0) == 1:
-            logger.debug('terminate as the loss increased.')
+            logging.debug('terminate as the loss increased.')
             break
         else:
             weights = tmp_w.copy()
 
-    logger.debug('Current Gradients Are:')
-    logger.debug(gradient)
+    logging.debug('Current Gradients Are:')
+    logging.debug(gradient)
 
     return weights
 
@@ -416,19 +412,16 @@ def _objective(params, *args):
     (X, _, y, k, method) = args
     weights = _get_weights(params, k, method)
     outputs = _calculate_outputs(weights, X)
-    eps = np.finfo(outputs.dtype).eps
-    outputs = np.clip(outputs, eps, 1-eps)
+    outputs = clip(outputs)
     loss = log_loss(y, outputs)
-    #logger.debug('Loss is:')
-    #logger.debug(loss)
-    #logger.debug('Parameter is:')
-    #logger.debug(weights)
+    #logging.debug('Loss is:')
+    #logging.debug(loss)
+    #logging.debug('Parameter is:')
+    #logging.debug(weights)
     return loss
 
 
 def _gradient(params, *args):
-    import logging
-    logger = logging.getLogger(__name__)
     (X, _, y, k, method) = args
     weights = _get_weights(params, k, method)
     outputs = _calculate_outputs(weights, X)
@@ -463,14 +456,12 @@ def _gradient(params, *args):
 
             gradient[i + 1] = np.sum((outputs[:, i] - y[:, i]) * X[:, k - 1])
 
-    #logger.debug(gradient)
+    #logging.debug(gradient)
     np.nan_to_num(gradient, copy=False)
     return gradient
 
 
 def _hessian(params, *args):
-    import logging
-    logger = logging.getLogger(__name__)
     (X, XXT, y, k, method) = args
     weights = _get_weights(params, k, method)
     outputs = _calculate_outputs(weights, X)
@@ -541,10 +532,10 @@ def _hessian(params, *args):
             hessian[i + 1, 0] = hessian[0, i + 1]
 
     #np.set_printoptions(precision=1)
-    #logger.debug('hessian is:')
+    #logging.debug('hessian is:')
     #if not (np.all(np.linalg.eigvals(hessian) > 0)):
-    #    logger.debug('non-positive-definite Hessian is detected!')
-    #logger.debug(hessian)
+    #    logging.debug('non-positive-definite Hessian is detected!')
+    #logging.debug(hessian)
     np.nan_to_num(hessian, copy=False)
     return hessian
 
