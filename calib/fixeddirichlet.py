@@ -15,9 +15,6 @@ class FixedDiagonalDirichletCalibrator(FullDirichletCalibrator):
             X_[:, i] = X[:, i] - X[:, -1]
         X_ = X_[:, :-1]
         self.calibrator_ = MultinomialRegression(method='FixDiag').fit(X_, y, *args, **kwargs)
-        self.coef_ = self.calibrator_.coef_
-        self.intercept_ = self.calibrator_.intercept_
-
         return self
 
     def predict_proba(self, S):
