@@ -16,99 +16,37 @@ from ..utils import clip
 
 
 class MultinomialRegression(BaseEstimator, RegressorMixin):
-    def __init__(self, weights_0=None, method='Full'):
-        # Method in {'Full', 'Diag', 'FixDiag'}
-        self.coef_ = None
-        self.intercept_ = None
+    def __init__(self, weights_0=None, method='Full', initializer='identity'):
+        if method not in ['Full', 'Diag', 'FixDiag']:
+            raise(ValueError)
+
+        self.weights_ = weights_0
         self.weights_0_ = weights_0
         self.method_ = method
+        self.initializer = initializer
 
     def fit(self, X, y, *args, **kwargs):
         X_ = np.hstack((X, np.ones((len(X), 1))))
 
-        classes = np.unique(y)
+        self.classes = np.unique(y)
 
-        k = len(classes)
-
-        target = label_binarize(y, classes)
-
+        k = len(self.classes)
+        target = label_binarize(y, self.classes)
         if k == 2:
             target = np.hstack([1-target, target])
 
-        if self.weights_0_ is None:
-
-            if self.method_ is 'Full':
-
-                weights_0 = np.random.randn((k - 1) * (k + 1))
-
-                weights_0 = _get_weights(weights_0, k, self.method_)
-
-                weights_0[np.diag_indices(k - 1)] = np.abs(weights_0[np.diag_indices(k - 1)])
-
-                weights_0[:, k - 1] = np.abs(weights_0[:, k - 1]) * -1
-
-            elif self.method_ is 'Diag':
-
-                weights_0 = np.random.randn(k + (k - 1))
-
-                weights_0 = _get_weights(weights_0, k, self.method_)
-
-                weights_0[np.diag_indices(k)] = np.abs(weights_0[np.diag_indices(k)])
-
-            elif self.method_ is 'FixDiag':
-
-                weights_0 = np.random.randn(k)
-
-                weights_0[0] = np.abs(weights_0[0])
-
-        else:
-            weights_0 = self.weights_0_
-
-        weights_0 = weights_0[weights_0!=0]
-
-        n = np.shape(X_)[0]
-
-        m = np.shape(X_)[1]
+        n, m = X_.shape
 
         XXT = np.zeros([n, m, m])
 
         for i in range(0, n):
             XXT[i, :, :] = np.matmul(X_[i, :].reshape(-1, 1), X_[i, :].reshape(-1, 1).transpose())
 
-
         logging.debug(self.method_)
 
-        # res = minimize(
-        #         method='trust-krylov',
-        #         fun=_objective,
-        #         jac=_gradient,
-        #         hess=_hessian,
-        #         x0=weights_0,
-        #         args=(X_, XXT, target, k, self.method_),
-        #         bounds=None,
-        #         #tol=1e-16,
-        #         options={'disp': False,
-        #             'initial_trust_radius': 1.0,
-        #             'max_trust_radius': 1e32,
-        #             'change_ratio': 1 - 1e-4,
-        #             'eta': 0.0,
-        #             'maxiter': 5e4,
-        #             'gtol': 1e-8}
-        #         )
+        self.weights_0_ = self._get_initial_weights(self.initializer)
 
-        #res = minimize(
-        #    method='BFGS',
-        #    fun=_objective,
-        #    jac=_gradient,
-        #    x0=weights_0,
-        #    args=(X_, XXT, target, k, self.method_),
-        #)
-
-        # weights = res.x
-
-        weights_0 = np.zeros_like(weights_0)
-
-        weights = _newton_update(weights_0, X_, XXT, target, k, self.method_)
+        weights = _newton_update(self.weights_0_, X_, XXT, target, k, self.method_)
 
         # logging.debug('===================================================================')
         # if res.success:
@@ -130,9 +68,69 @@ class MultinomialRegression(BaseEstimator, RegressorMixin):
         #logging.debug('===================================================================')
 
         self.weights_ = _get_weights(weights, k, self.method_)
-        self.coef_ = self.weights_[:, :-1]
-        self.intercept_ = self.weights_[:, -1]
         return self
+
+
+    @property
+    def coef_(self):
+        return self.weights_[:, :-1]
+
+
+    @property
+    def intercept_(self):
+        return self.weights_[:, -1]
+
+
+    def _get_initial_weights(self, initializer='identity'):
+        ''' Returns an array containing only the weights of the full weight
+        matrix.
+
+        '''
+        if initializer not in ['identity', 'randn']:
+            raise(ValueError)
+
+        k = len(self.classes)
+
+        if self.weights_0_ is None:
+
+            if self.method_ is 'Full':
+                if initializer == 'identity':
+                    weights_0 = np.zeros((k - 1) * (k + 1))
+                    weights_0 = _get_weights(weights_0, k, self.method_)
+                    weights_0[np.diag_indices(k - 1)] = 1
+                    weights_0[:-1, -2] = -1
+                else:
+                    weights_0 = np.random.randn((k - 1) * (k + 1))
+                    weights_0 = _get_weights(weights_0, k, self.method_)
+                    weights_0[np.diag_indices(k - 1)] = np.abs(weights_0[np.diag_indices(k - 1)])
+                    weights_0[:, k - 1] = np.abs(weights_0[:, k - 1]) * -1
+
+                weights_0 = weights_0[_get_weights_indices(k, self.method_)]
+
+            elif self.method_ is 'Diag':
+                if initializer == 'identity':
+                    weights_0 = np.zeros((k, k+1))
+                    weights_0[np.diag_indices(k)] = 1
+                else:
+                    weights_0 = np.random.randn(k + (k - 1))
+                    weights_0 = _get_weights(weights_0, k, self.method_)
+                    weights_0[np.diag_indices(k)] = np.abs(weights_0[np.diag_indices(k)])
+
+                weights_0 = weights_0[_get_weights_indices(k, self.method_)]
+
+            elif self.method_ is 'FixDiag':
+                if initializer == 'identity':
+                    weights_0 = np.zeros(k)
+                    weights_0[0] = 1
+                else:
+                    weights_0 = np.random.randn(k)
+                    weights_0[0] = np.abs(weights_0[0])
+
+        else:
+            weights_0 = self.weights_0_
+
+        return weights_0
+
 
     def predict_proba(self, S):
         S_ = np.hstack((S, np.ones((len(S), 1))))
@@ -199,34 +197,41 @@ def _newton_update(weights_0, X, XX_T, target, k, method_, maxiter=int(1e3),
 
 
 def _get_weights(params, k, method):
+    ''' Reshapes the given params (weights) into the full matrix including 0
+    '''
 
     if method is 'Full':
-
         weights = np.zeros([k, k+1])
-
         weights[:-1, :] = params.reshape(-1, k + 1)
 
     elif method is 'Diag':
-
         weights = np.zeros([k, k+1])
-
         tmp_params = params[:-1].reshape(-1, 2)
-
         weights[np.diag_indices(k - 1)] = tmp_params[:, 0]
-
         weights[:-1, -1] = tmp_params[:, 1]
-
         weights[-1, k - 1] = params[-1]
 
     elif method is 'FixDiag':
-
         weights = np.zeros([k, k])
-
         weights[np.diag_indices(k - 1)] = params[0]
-
         weights[:-1, -1] = params[1:]
 
     return weights
+
+
+def _get_weights_indices(k, method):
+    ''' Returns the indices of the parameters in the full matrix
+    '''
+    if method is 'Full':
+        params = np.arange((k-1)*(k+1)) + 1
+        full_matrix = _get_weights(params, k, method)
+    elif method is 'Diag':
+        params = np.arange(k + k - 1) + 1
+        full_matrix = _get_weights(params, k, method)
+    elif method is 'FixDiag':
+        params = np.arange(k) + 1
+        full_matrix = _get_weights(params, k, method)
+    return np.where(full_matrix != 0)
 
 
 def _objective(params, *args):
@@ -362,11 +367,8 @@ def _hessian(params, *args):
 
 
 def _calculate_outputs(weights, X):
-
     k = np.shape(weights)[0]
-
     mul = np.dot(X, weights.transpose())
-
     return _softmax(mul)
 
 
