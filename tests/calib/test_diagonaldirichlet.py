@@ -2,6 +2,7 @@ import unittest
 import numpy as np
 from dirichlet.calib.diagdirichlet import DiagonalDirichletCalibrator
 from . import get_simple_binary_example
+from . import get_simple_ternary_example
 
 
 class TestDiagonalDirichlet(unittest.TestCase):
@@ -14,6 +15,10 @@ class TestDiagonalDirichlet(unittest.TestCase):
         predictions = self.cal.predict_proba(S).argmax(axis=1)
         np.testing.assert_array_equal(predictions, y)
 
+        S, y = get_simple_ternary_example()
+        self.cal.fit(S, y)
+        predictions = self.cal.predict_proba(S).argmax(axis=1)
+        np.testing.assert_array_equal(predictions, y)
 
 def main():
     unittest.main()
