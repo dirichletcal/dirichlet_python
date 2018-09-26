@@ -1,4 +1,5 @@
 import logging
+import numpy as np
 
 from sklearn.base import BaseEstimator, RegressorMixin
 
@@ -23,7 +24,11 @@ class DirichletCalibrator(BaseEstimator, RegressorMixin):
         else:
             self.calibrator_ = FullDirichletCalibrator()
 
-        self.calibrator_ = self.calibrator_.fit(X, y, *args, **kwargs)
+        _X = np.copy(X)
+        if len(X.shape) == 1:
+            _X = np.vstack(((1-_X), _X)).T
+
+        self.calibrator_ = self.calibrator_.fit(_X, y, *args, **kwargs)
         return self
 
 
@@ -38,7 +43,19 @@ class DirichletCalibrator(BaseEstimator, RegressorMixin):
 
 
     def predict_proba(self, S):
-        return self.calibrator_.predict_proba(S)
+
+        _S = np.copy(S)
+        if len(S.shape) == 1:
+            _S = np.vstack(((1-_S), _S)).T
+            return self.calibrator_.predict_proba(_S)[:,1]
+
+        return self.calibrator_.predict_proba(_S)
 
     def predict(self, S):
-        return self.calibrator_.predict(S)
+
+        _S = np.copy(S)
+        if len(S.shape) == 1:
+            _S = np.vstack(((1-_S), _S)).T
+            return self.calibrator_.predict(_S)[:,1]
+
+        return self.calibrator_.predict(_S)

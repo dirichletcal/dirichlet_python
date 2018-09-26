@@ -136,6 +136,7 @@ class MultinomialRegression(BaseEstimator, RegressorMixin):
         S_ = np.hstack((S, np.ones((len(S), 1))))
         return _calculate_outputs(self.weights_, S_)
 
+    # FIXME Should we change predict for the argmax?
     def predict(self, S):
         return self.predict_proba(S)
 
