@@ -176,23 +176,24 @@ def _newton_update(weights_0, X, XX_T, target, k, method_, maxiter=int(1e3),
 
         L_list.append(L)
 
-        logging.debug({'iteration': i, 'loss': L, 'sum(abs(grad))':
-                      np.abs(gradient).sum()})
+        logging.debug("[{}] loss = {:.2e}, sum_grad = {:.2e}".format(i, L,
+                      np.abs(gradient).sum()))
 
         if i >= 5:
             if (np.min(np.diff(L_list[-5:])) > -ftol) & (np.sum(np.diff(L_list[-5:]) > 0) == 0):
                 weights = tmp_w.copy()
-                logging.debug('terminate as there is not enough changes on Psi.')
+                logging.debug('Terminate as there is not enough changes on Psi.')
                 break
 
-        if np.sum(np.diff(L_list[-2:]) > 0) == 1:
-            logging.debug('terminate as the loss increased.')
+        if np.any(np.diff(L_list[-2:]) > 0):
+            logging.debug('Terminate as the loss increased {:.2e}.'.format(
+                np.diff(L_list[-2:])))
             break
         else:
             weights = tmp_w.copy()
 
-    logging.debug('Current Gradients Are:')
-    logging.debug(gradient)
+    logging.debug('There are {} parameters, which abs-sum to: {:.2e}'.format(
+        len(weights), np.abs(gradient).sum()))
 
     return weights
 
