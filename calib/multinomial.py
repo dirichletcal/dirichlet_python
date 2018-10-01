@@ -16,7 +16,8 @@ from ..utils import clip
 
 
 class MultinomialRegression(BaseEstimator, RegressorMixin):
-    def __init__(self, weights_0=None, method='Full', initializer='identity'):
+    def __init__(self, weights_0=None, method='Full', initializer='identity',
+                 l2=0.1):
         if method not in ['Full', 'Diag', 'FixDiag']:
             raise(ValueError)
 
@@ -24,6 +25,7 @@ class MultinomialRegression(BaseEstimator, RegressorMixin):
         self.weights_0_ = weights_0
         self.method_ = method
         self.initializer = initializer
+        self.l2 = l2
 
     def fit(self, X, y, *args, **kwargs):
         X_ = np.hstack((X, np.ones((len(X), 1))))
@@ -46,7 +48,8 @@ class MultinomialRegression(BaseEstimator, RegressorMixin):
 
         self.weights_0_ = self._get_initial_weights(self.initializer)
 
-        weights = _newton_update(self.weights_0_, X_, XXT, target, k, self.method_)
+        weights = _newton_update(self.weights_0_, X_, XXT, target, k,
+                                 self.method_, l2=self.l2)
 
         # logging.debug('===================================================================')
         # if res.success:
@@ -95,10 +98,7 @@ class MultinomialRegression(BaseEstimator, RegressorMixin):
 
             if self.method_ is 'Full':
                 if initializer == 'identity':
-                    weights_0 = np.zeros((k - 1) * (k + 1))
-                    weights_0 = _get_weights(weights_0, k, self.method_)
-                    weights_0[np.diag_indices(k - 1)] = 1
-                    weights_0[:-1, -2] = -1
+                    weights_0 = _get_identity_weights(k, self.method_)
                 else:
                     weights_0 = np.random.randn((k - 1) * (k + 1))
                     weights_0 = _get_weights(weights_0, k, self.method_)
@@ -109,8 +109,7 @@ class MultinomialRegression(BaseEstimator, RegressorMixin):
 
             elif self.method_ is 'Diag':
                 if initializer == 'identity':
-                    weights_0 = np.zeros((k, k+1))
-                    weights_0[np.diag_indices(k)] = 1
+                    weights_0 = _get_identity_weights(k, self.method_)
                 else:
                     weights_0 = np.random.randn(k + (k - 1))
                     weights_0 = _get_weights(weights_0, k, self.method_)
@@ -120,8 +119,7 @@ class MultinomialRegression(BaseEstimator, RegressorMixin):
 
             elif self.method_ is 'FixDiag':
                 if initializer == 'identity':
-                    weights_0 = np.zeros(k)
-                    weights_0[0] = 1
+                    weights_0 = _get_identity_weights(k, self.method_)
                 else:
                     weights_0 = np.random.randn(k)
                     weights_0[0] = np.abs(weights_0[0])
@@ -141,21 +139,36 @@ class MultinomialRegression(BaseEstimator, RegressorMixin):
         return self.predict_proba(S)
 
 
-def _newton_update(weights_0, X, XX_T, target, k, method_, maxiter=int(1e3),
-                   ftol=1e-12, gtol=1e-12):
+def _get_identity_weights(n_classes, method):
+    if method == 'Full':
+        weights = np.zeros((n_classes - 1) * (n_classes + 1))
+        weights = _get_weights(weights, n_classes, method)
+        weights[np.diag_indices(n_classes - 1)] = 1
+        weights[:-1, -2] = -1
+    elif method is 'Diag':
+        weights = np.zeros((n_classes, n_classes+1))
+        weights[np.diag_indices(n_classes)] = 1
+    elif method is 'FixDiag':
+        weights = np.zeros(n_classes)
+        weights[0] = 1
+    return weights
 
-    L_list = [_objective(weights_0, X, XX_T, target, k, method_)]
+
+def _newton_update(weights_0, X, XX_T, target, k, method_, maxiter=int(1e3),
+                   ftol=1e-12, gtol=1e-12, l2=0):
+
+    L_list = [_objective(weights_0, X, XX_T, target, k, method_, l2)]
 
     weights = weights_0.copy()
 
     for i in range(0, maxiter):
 
-        gradient = _gradient(weights, X, XX_T, target, k, method_)
+        gradient = _gradient(weights, X, XX_T, target, k, method_, l2)
 
         if np.abs(gradient).sum() < gtol:
             break
 
-        hessian = _hessian(weights, X, XX_T, target, k, method_)
+        hessian = _hessian(weights, X, XX_T, target, k, method_, l2)
 
         for step_size in np.hstack((np.linspace(1, 0.1, 10),
                                     np.linspace(0.09, 0.01, 9),
@@ -169,7 +182,7 @@ def _newton_update(weights_0, X, XX_T, target, k, method_, maxiter=int(1e3),
 
             tmp_w = weights - updates
 
-            L = _objective(tmp_w, X, XX_T, target, k, method_)
+            L = _objective(tmp_w, X, XX_T, target, k, method_, l2)
 
             if (L - L_list[-1]) < 0:
                 break
@@ -237,11 +250,14 @@ def _get_weights_indices(k, method):
 
 
 def _objective(params, *args):
-    (X, _, y, k, method) = args
+    (X, _, y, k, method, l2) = args
     weights = _get_weights(params, k, method)
     outputs = _calculate_outputs(weights, X)
     outputs = clip(outputs)
     loss = log_loss(y, outputs)
+    #from IPython import embed; embed()
+    if l2 != 0:
+        loss = loss + l2*np.sum((weights - _get_identity_weights(k, method))**2)
     #logging.debug('Loss is:')
     #logging.debug(loss)
     #logging.debug('Parameter is:')
@@ -250,39 +266,43 @@ def _objective(params, *args):
 
 
 def _gradient(params, *args):
-    (X, _, y, k, method) = args
+    (X, _, y, k, method, l2) = args
     weights = _get_weights(params, k, method)
     outputs = _calculate_outputs(weights, X)
 
     if method is 'Full':
 
-        gradient = np.random.randn((k - 1) * (k + 1))
+        gradient = np.zeros((k - 1) * (k + 1))
 
         for i in range(0, k - 1):
 
-            gradient[i * (k + 1):(i + 1) * (k + 1)] = \
+            gradient[i * (k + 1):(i + 1) * (k + 1)] += \
                     np.sum((outputs[:, i] - y[:, i]).reshape(-1, 1).repeat(k+1, axis=1) * X, axis=0)
 
+        if l2 > 0:
+            gradient += 2*l2*(params - _get_identity_weights(k,
+                                                             method)[_get_weights_indices(k,
+                                                                                          method)])
     elif method is 'Diag':
 
-        gradient = np.random.randn(k + (k - 1))
+        gradient = np.zeros(k + (k - 1))
 
         for i in range(0, k - 1):
 
-            gradient[i * 2:(i + 1) * 2] = \
+            gradient[i * 2:(i + 1) * 2] += \
                     np.sum((outputs[:, i] - y[:, i]).reshape(-1, 1).repeat(2, axis=1) * X[:, [i, k]], axis=0)
 
         gradient[-1] = np.sum((outputs[:, i] - y[:, i]) * X[:, k])
 
     elif method is 'FixDiag':
 
-        gradient = np.random.randn(k)
+        gradient = np.zeros(k)
 
-        gradient[0] = np.sum((outputs[:, :-1] - y[:, :-1]) * X[:, :-1])
+        gradient[0] += np.sum((outputs[:, :-1] - y[:, :-1]) * X[:, :-1])
 
         for i in range(0, k - 1):
 
-            gradient[i + 1] = np.sum((outputs[:, i] - y[:, i]) * X[:, k - 1])
+            gradient[i + 1] += np.sum((outputs[:, i] - y[:, i]) * X[:, k - 1])
 
     #logging.debug(gradient)
     np.nan_to_num(gradient, copy=False)
@@ -290,7 +310,7 @@ def _gradient(params, *args):
 
 
 def _hessian(params, *args):
-    (X, XXT, y, k, method) = args
+    (X, XXT, y, k, method, l2) = args
     weights = _get_weights(params, k, method)
     outputs = _calculate_outputs(weights, X)
     n = np.shape(X)[0]
@@ -304,10 +324,12 @@ def _hessian(params, *args):
                 if i <= j:
                     tmp_diff = outputs[:, i] * (int(i == j) - outputs[:, j])
                     tmp_diff = tmp_diff.ravel().repeat((k + 1) ** 2).reshape(n, k + 1, k + 1)
-                    hessian[i * (k + 1): (i + 1) * (k + 1), j * (k + 1): (j + 1) * (k + 1)] = np.sum(tmp_diff * XXT, axis=0)
+                    hessian[i * (k + 1): (i + 1) * (k + 1), j * (k + 1): (j + 1) * (k + 1)] += np.sum(tmp_diff * XXT, axis=0)
                 else:
-                    hessian[i * (k + 1): (i + 1) * (k + 1), j * (k + 1): (j + 1) * (k + 1)] = \
+                    hessian[i * (k + 1): (i + 1) * (k + 1), j * (k + 1): (j + 1) * (k + 1)] += \
                             hessian[j * (k + 1): (j + 1) * (k + 1), i * (k + 1): (i + 1) * (k + 1)]
+                if i == j:
+                    hessian[i, j] += 2*l2
 
     elif method is 'Diag':
 
