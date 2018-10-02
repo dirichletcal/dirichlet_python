@@ -17,7 +17,7 @@ from ..utils import clip
 
 class MultinomialRegression(BaseEstimator, RegressorMixin):
     def __init__(self, weights_0=None, method='Full', initializer='identity',
-                 l2=0.1):
+                 l2=0.0):
         if method not in ['Full', 'Diag', 'FixDiag']:
             raise(ValueError)
 
