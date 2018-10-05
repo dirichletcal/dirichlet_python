@@ -16,7 +16,7 @@ class DirichletCalibrator(BaseEstimator, RegressorMixin):
         self.matrix_type = matrix_type
         self.l2 = l2
 
-    def fit(self, X, y, X_val=None, y_val=None, *args, **kwargs):
+    def fit(self, X, y, X_val=None, y_val=None, **kwargs):
 
         if self.matrix_type == 'diagonal':
             self.calibrator_ = DiagonalDirichletCalibrator(l2=self.l2)
@@ -29,13 +29,14 @@ class DirichletCalibrator(BaseEstimator, RegressorMixin):
         if len(X.shape) == 1:
             _X = np.vstack(((1-_X), _X)).T
 
+        _X_val = X_val
         if X_val is not None:
             _X_val = np.copy(X_val)
             if len(X_val.shape) == 1:
                 _X_val = np.vstack(((1-_X_val), _X_val)).T
 
         self.calibrator_ = self.calibrator_.fit(_X, y, X_val=_X_val,
-                                                y_val=y_val, *args, **kwargs)
+                                                y_val=y_val, **kwargs)
         return self
 
 
