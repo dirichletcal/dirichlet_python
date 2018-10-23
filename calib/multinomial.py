@@ -328,8 +328,7 @@ def _hessian(params, *args):
                 else:
                     hessian[i * (k + 1): (i + 1) * (k + 1), j * (k + 1): (j + 1) * (k + 1)] += \
                             hessian[j * (k + 1): (j + 1) * (k + 1), i * (k + 1): (i + 1) * (k + 1)]
-                if i == j:
-                    hessian[i, j] += 2*l2
+        hessian[np.diag_indices(k**2 - 1)] += 2*l2
 
     elif method is 'Diag':
 
