@@ -20,7 +20,6 @@ class TestMultinomial(unittest.TestCase):
         predictions = self.mlr.predict_proba(S).argmax(axis=1)
         np.testing.assert_array_equal(predictions, y)
 
-
     def test_get_weights(self):
         k = 3
         params = np.arange((k-1)*(k+1)) + 1
@@ -39,6 +38,16 @@ class TestMultinomial(unittest.TestCase):
         full_matrix = _get_weights(params, k=k, method='FixDiag')
         expected = np.array([[1, 0, 2], [0, 1, 3], [0, 0, 0]], 'float')
         np.testing.assert_array_equal(full_matrix, expected)
+
+    def test_extreme_values(self):
+        tiny = np.finfo(float).tiny
+        S = np.array([[tiny, tiny*10, 1.0-(tiny*10), 1.0-tiny],
+                      [1.0-tiny, 1.0-(tiny*10), tiny*10, tiny]]).T
+        y = np.array([0, 0, 1, 1])
+        self.mlr = MultinomialRegression()
+        self.mlr.fit(S, y)
+        predictions = self.mlr.predict_proba(S).argmax(axis=1)
+        self.assertTrue(np.alltrue(np.equal(predictions, y)))
 
 
 def main():

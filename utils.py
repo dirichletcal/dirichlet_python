@@ -2,7 +2,7 @@ import numpy as np
 
 
 def clip_for_log(X):
-    eps = 1e-10
+    eps = 1e-30
     return np.clip(X, eps, 1-eps)
 
 
