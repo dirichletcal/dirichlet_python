@@ -16,9 +16,9 @@ from ..utils import clip
 
 
 class MultinomialRegression(BaseEstimator, RegressorMixin):
-    def __init__(self, weights_0=None, method='Full', initializer='identity',
+    def __init__(self, weights_0=None, method=None, initializer='identity',
                  l2=0.0):
-        if method not in ['Full', 'Diag', 'FixDiag']:
+        if method not in [None, 'Full', 'Diag', 'FixDiag']:
             raise(ValueError)
 
         self.weights_ = weights_0
@@ -123,7 +123,11 @@ class MultinomialRegression(BaseEstimator, RegressorMixin):
                 else:
                     weights_0 = np.random.randn(k)
                     weights_0[0] = np.abs(weights_0[0])
-
+            if self.method_ is None:
+                if initializer == 'identity':
+                    weights_0 = _get_identity_weights(k, self.method_)
+                else:
+                    weights_0 = np.random.randn((k - 1) * (k + 1))
         else:
             weights_0 = self.weights_0_
 
@@ -151,6 +155,8 @@ def _get_identity_weights(n_classes, method):
     elif method is 'FixDiag':
         weights = np.zeros(n_classes)
         weights[0] = 1
+    elif method is None:
+        weights = np.ones((n_classes - 1) * (n_classes + 1))
     return weights
 
 
@@ -160,20 +166,22 @@ def _newton_update(weights_0, X, XX_T, target, k, method_, maxiter=int(131),
     L_list = [_objective(weights_0, X, XX_T, target, k, method_, l2)]
 
     weights = weights_0.copy()
-    
-    weights = np.zeros_like(weights)
+
+    # TODO move this to the initialization
+    if method_ is None:
+        weights = np.zeros_like(weights)
 
     for i in range(0, maxiter):
 
         gradient = _gradient(weights, X, XX_T, target, k, method_, l2)
-        
+
         if np.abs(gradient).sum() < gtol:
             break
 
         hessian = _hessian(weights, X, XX_T, target, k, method_, l2)
 
         PD = np.all(np.linalg.eigvals(hessian) > 0)
-        
+
         for step_size in np.hstack((np.linspace(1, 0.1, 10),
                                     np.logspace(-2, -32, 31))):
 
@@ -206,8 +214,9 @@ def _newton_update(weights_0, X, XX_T, target, k, method_, maxiter=int(131),
         else:
             weights = tmp_w.copy()
 
-        logging.debug("{}: after {} iterations final log-loss = {:.2e}, sum_grad = {:.2e}".format(
-            method_, i, L, np.abs(gradient).sum()))
+    logging.debug("{}: after {} iterations final log-loss = {:.2e}, sum_grad = {:.2e}".format(
+        method_, i, L, np.abs(gradient).sum()))
+    logging.debug("weights = \n{}".format(weights))
 
     return weights
 
@@ -216,7 +225,7 @@ def _get_weights(params, k, method):
     ''' Reshapes the given params (weights) into the full matrix including 0
     '''
 
-    if method is 'Full':
+    if method in ['Full', None]:
         weights = np.zeros([k, k+1])
         weights[:-1, :] = params.reshape(-1, k + 1)
 
@@ -238,7 +247,7 @@ def _get_weights(params, k, method):
 def _get_weights_indices(k, method):
     ''' Returns the indices of the parameters in the full matrix
     '''
-    if method is 'Full':
+    if method in ['Full', None]:
         params = np.arange((k-1)*(k+1)) + 1
         full_matrix = _get_weights(params, k, method)
     elif method is 'Diag':
@@ -270,7 +279,7 @@ def _gradient(params, *args):
     weights = _get_weights(params, k, method)
     outputs = _calculate_outputs(weights, X)
 
-    if method is 'Full':
+    if method in ['Full', None]:
 
         gradient = np.zeros((k - 1) * (k + 1))
 
@@ -315,7 +324,7 @@ def _hessian(params, *args):
     outputs = _calculate_outputs(weights, X)
     n = np.shape(X)[0]
 
-    if method is 'Full':
+    if method in ['Full', None]:
 
         hessian = np.zeros([k ** 2 - 1, k ** 2 - 1])
 
