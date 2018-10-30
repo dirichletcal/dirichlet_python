@@ -154,33 +154,30 @@ def _get_identity_weights(n_classes, method):
     return weights
 
 
-def _newton_update(weights_0, X, XX_T, target, k, method_, maxiter=int(1e3),
-                   ftol=1e-12, gtol=1e-12, l2=0):
+def _newton_update(weights_0, X, XX_T, target, k, method_, maxiter=int(131),
+                   ftol=1e-16, gtol=1e-8, l2=0):
 
     L_list = [_objective(weights_0, X, XX_T, target, k, method_, l2)]
 
     weights = weights_0.copy()
+    
+    # weights = np.zeros_like(weights)
 
     for i in range(0, maxiter):
 
         gradient = _gradient(weights, X, XX_T, target, k, method_, l2)
-
+        
         if np.abs(gradient).sum() < gtol:
             break
 
         hessian = _hessian(weights, X, XX_T, target, k, method_, l2)
-
+        
         for step_size in np.hstack((np.linspace(1, 0.1, 10),
-                                    np.linspace(0.09, 0.01, 9),
-                                    np.linspace(0.009, 0.001, 9),
-                                    np.linspace(0.0009, 0.0001, 9),
-                                    np.linspace(0.00009, 0.00001, 9),
-                                    np.linspace(0.000009, 0.000001, 9),
-                                    1e-8, 1e-16, 1e-32)):
+                                    np.logspace(-2, -32, 31))):
 
-            updates = (np.matmul(scipy.linalg.pinv2(hessian), gradient.reshape(-1, 1)) * step_size).ravel()
+            updates = scipy.linalg.solve(hessian, gradient)
 
-            tmp_w = weights - updates
+            tmp_w = weights - (updates * step_size).ravel()
 
             L = _objective(tmp_w, X, XX_T, target, k, method_, l2)
 
@@ -192,11 +189,10 @@ def _newton_update(weights_0, X, XX_T, target, k, method_, maxiter=int(1e3),
         logging.debug("{}: after {} iterations log-loss = {:.2e}, sum_grad = {:.2e}".format(
             method_, i, L, np.abs(gradient).sum()))
 
-        if i >= 5:
-            if (np.min(np.diff(L_list[-5:])) > -ftol) & (np.sum(np.diff(L_list[-5:]) > 0) == 0):
-                weights = tmp_w.copy()
-                logging.debug('{}: Terminate as there is not enough changes on Psi.'.format(method_))
-                break
+        if (np.diff(L_list[-2:]) > -ftol) & (np.diff(L_list[-2:]) < 0):
+            weights = tmp_w.copy()
+            logging.debug('{}: Terminate as there is not enough changes on Psi.'.format(method_))
+            break
 
         if np.any(np.diff(L_list[-2:]) > 0):
             logging.debug('{}: Terminate as the loss increased {:.2e}.'.format(
@@ -205,8 +201,8 @@ def _newton_update(weights_0, X, XX_T, target, k, method_, maxiter=int(1e3),
         else:
             weights = tmp_w.copy()
 
-    logging.debug("{}: after {} iterations final log-loss = {:.2e}, sum_grad = {:.2e}".format(
-        method_, i, L, np.abs(gradient).sum()))
+        logging.debug("{}: after {} iterations final log-loss = {:.2e}, sum_grad = {:.2e}".format(
+            method_, i, L, np.abs(gradient).sum()))
 
     return weights
 
