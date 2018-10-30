@@ -178,7 +178,7 @@ def _newton_update(weights_0, X, XX_T, target, k, method_, maxiter=int(131),
                                     np.logspace(-2, -32, 31))):
 
             if PD:
-                updates = scipy.linalg.solve(hessian, gradient, assume_a=True)
+                updates = scipy.linalg.solve(hessian, gradient, assume_a='pos')
             else:
                 updates = np.matmul(scipy.linalg.pinv2(hessian), gradient)
 
