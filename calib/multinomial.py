@@ -205,6 +205,8 @@ def _newton_update(weights_0, X, XX_T, target, k, method_, maxiter=int(1e3),
         else:
             weights = tmp_w.copy()
 
+    if 'L' not in locals():
+        L = _objective(weights, X, XX_T, target, k, method_, l2)
     logging.debug("{}: after {} iterations final log-loss = {:.2e}, sum_grad = {:.2e}".format(
         method_, i, L, np.abs(gradient).sum()))
 
@@ -253,7 +255,6 @@ def _objective(params, *args):
     (X, _, y, k, method, l2) = args
     weights = _get_weights(params, k, method)
     outputs = _calculate_outputs(weights, X)
-    outputs = clip(outputs)
     loss = log_loss(y, outputs)
     #from IPython import embed; embed()
     if l2 != 0:
