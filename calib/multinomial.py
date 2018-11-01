@@ -180,15 +180,10 @@ def _newton_update(weights_0, X, XX_T, target, k, method_, maxiter=int(131),
 
         hessian = _hessian(weights, X, XX_T, target, k, method_, l2)
 
-        PD = np.all(np.linalg.eigvals(hessian) > 0)
+        updates = np.matmul(scipy.linalg.pinv2(hessian), gradient)
 
         for step_size in np.hstack((np.linspace(1, 0.1, 10),
                                     np.logspace(-2, -32, 31))):
-
-            if PD:
-                updates = scipy.linalg.solve(hessian, gradient, assume_a='pos')
-            else:
-                updates = np.matmul(scipy.linalg.pinv2(hessian), gradient)
 
             tmp_w = weights - (updates * step_size).ravel()
 
