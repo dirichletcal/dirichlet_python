@@ -17,7 +17,7 @@ from ..utils import clip
 
 class MultinomialRegression(BaseEstimator, RegressorMixin):
     def __init__(self, weights_0=None, method=None, initializer='identity',
-                 l2=0.0):
+                 l2=0.0, comp_l2=False):
         if method not in [None, 'Full', 'Diag', 'FixDiag']:
             raise(ValueError)
 
@@ -26,6 +26,7 @@ class MultinomialRegression(BaseEstimator, RegressorMixin):
         self.method_ = method
         self.initializer = initializer
         self.l2 = l2
+        self.comp_l2 = comp_l2  # If true, then Complementary regularization used (off-diagonal regularization)
 
     def fit(self, X, y, *args, **kwargs):
         X_ = np.hstack((X, np.ones((len(X), 1))))
@@ -49,7 +50,7 @@ class MultinomialRegression(BaseEstimator, RegressorMixin):
         self.weights_0_ = self._get_initial_weights(self.initializer)
 
         weights = _newton_update(self.weights_0_, X_, XXT, target, k,
-                                 self.method_, l2=self.l2)
+                                 self.method_, l2=self.l2, comp_l2=self.comp_l2)
 
         # logging.debug('===================================================================')
         # if res.success:
@@ -141,6 +142,39 @@ class MultinomialRegression(BaseEstimator, RegressorMixin):
     # FIXME Should we change predict for the argmax?
     def predict(self, S):
         return self.predict_proba(S)
+        
+    def get_loss_reg(self, X, y):
+        # Helper function for saving objective loss and regularization value.
+        
+        X_ = np.hstack((X, np.ones((len(X), 1))))  # Add homogeneous coordinates
+        
+        weights = self.weights_  # Parameters
+        comp_l2 = self.comp_l2
+        l2 = self.l2
+        k = weights.shape[0]
+        
+        # Calculate outputs and loss
+        outputs = _calculate_outputs(weights, X_)
+        outputs = clip(outputs)
+        loss = log_loss(y, outputs)
+        
+        #from IPython import embed; embed()
+        if l2 != 0:
+            if comp_l2:
+                temp = weights.copy()
+                k = temp.shape[0]
+                temp[np.diag_indices(k-1)] = 0  # Set everything on diagonal 0.
+                temp[:-1, -2] = 0  # one before last to 0
+                #temp[:-1, -1] = 0  # Last column - intercept to 0
+                reg = l2*np.sum((temp)**2)
+                loss = loss + reg  # EDIT here for complementary matrix
+            else:
+                reg = l2*np.sum((weights - _get_identity_weights(k, "Full"))**2)
+                loss = loss + reg
+        else:
+            reg = 0
+        #logging.debug('Loss is:')
+        return (loss, reg)
 
 
 def _get_identity_weights(n_classes, method):
@@ -161,9 +195,9 @@ def _get_identity_weights(n_classes, method):
 
 
 def _newton_update(weights_0, X, XX_T, target, k, method_, maxiter=int(131),
-                   ftol=1e-12, gtol=1e-8, l2=0):
+                   ftol=1e-12, gtol=1e-8, l2=0, comp_l2=False):
 
-    L_list = [_objective(weights_0, X, XX_T, target, k, method_, l2)]
+    L_list = [_objective(weights_0, X, XX_T, target, k, method_, l2, comp_l2)]
 
     weights = weights_0.copy()
 
@@ -172,35 +206,37 @@ def _newton_update(weights_0, X, XX_T, target, k, method_, maxiter=int(131),
         weights = np.zeros_like(weights)
 
     for i in range(0, maxiter):
-
-        gradient = _gradient(weights, X, XX_T, target, k, method_, l2)
+    
+        gradient = _gradient(weights, X, XX_T, target, k, method_, l2, comp_l2)
 
         if np.abs(gradient).sum() < gtol:
             break
 
-        hessian = _hessian(weights, X, XX_T, target, k, method_, l2)
+        hessian = _hessian(weights, X, XX_T, target, k, method_, l2, comp_l2)
 
         updates = np.matmul(scipy.linalg.pinv2(hessian), gradient)
 
         for step_size in np.hstack((np.linspace(1, 0.1, 10),
                                     np.logspace(-2, -32, 31))):
 
+                                    
             tmp_w = weights - (updates * step_size).ravel()
 
-            L = _objective(tmp_w, X, XX_T, target, k, method_, l2)
+            L = _objective(tmp_w, X, XX_T, target, k, method_, l2, comp_l2)
 
             if (L - L_list[-1]) < 0:
                 break
 
         L_list.append(L)
 
-        logging.debug("{}: after {} iterations log-loss = {:.2e}, sum_grad = {:.2e}".format(
+        logging.debug("{}: after {} iterations log-loss = {:.7e}, sum_grad = {:.7e}".format(
             method_, i, L, np.abs(gradient).sum()))
 
-        if (np.diff(L_list[-2:]) > -ftol) & (np.diff(L_list[-2:]) < 0):
-            weights = tmp_w.copy()
-            logging.debug('{}: Terminate as there is not enough changes on Psi.'.format(method_))
-            break
+        if i >= 5:
+            if (np.min(np.diff(L_list[-5:])) > -ftol) & (np.sum(np.diff(L_list[-5:]) > 0) == 0):
+                weights = tmp_w.copy()
+                logging.debug('{}: Terminate as there is not enough changes on Psi.'.format(method_))
+                break
 
         if np.any(np.diff(L_list[-2:]) > 0):
             logging.debug('{}: Terminate as the loss increased {}.'.format(
@@ -209,9 +245,9 @@ def _newton_update(weights_0, X, XX_T, target, k, method_, maxiter=int(131),
         else:
             weights = tmp_w.copy()
 
-    logging.debug("{}: after {} iterations final log-loss = {:.2e}, sum_grad = {:.2e}".format(
+    logging.debug("{}: after {} iterations final log-loss = {:.7e}, sum_grad = {:.7e}".format(
         method_, i, L, np.abs(gradient).sum()))
-    logging.debug("weights = \n{}".format(weights))
+    #logging.debug("weights = \n{}".format(weights))
 
     return weights
 
@@ -255,13 +291,22 @@ def _get_weights_indices(k, method):
 
 
 def _objective(params, *args):
-    (X, _, y, k, method, l2) = args
+    (X, _, y, k, method, l2, comp_l2) = args
     weights = _get_weights(params, k, method)
     outputs = _calculate_outputs(weights, X)
     loss = log_loss(y, outputs)
     #from IPython import embed; embed()
     if l2 != 0:
-        loss = loss + l2*np.sum((weights - _get_identity_weights(k, method))**2)
+        if comp_l2:  # off-diagonal regularization
+            temp = weights.copy()  # TODO - Is copying needed here?
+            temp[np.diag_indices(k-1)] = 0  # Set everything on diagonal 0.
+            temp[:-1, -2] = 0  # one before last to 0
+            reg = l2*np.sum((temp)**2)
+            loss = loss + reg
+        else:
+            reg = l2*np.sum((weights - _get_identity_weights(k, method))**2)
+            loss = loss + reg
+            
     #logging.debug('Loss is:')
     #logging.debug(loss)
     #logging.debug('Parameter is:')
@@ -270,7 +315,7 @@ def _objective(params, *args):
 
 
 def _gradient(params, *args):
-    (X, _, y, k, method, l2) = args
+    (X, _, y, k, method, l2, comp_l2) = args
     weights = _get_weights(params, k, method)
     outputs = _calculate_outputs(weights, X)
 
@@ -284,7 +329,13 @@ def _gradient(params, *args):
                     np.sum((outputs[:, i] - y[:, i]).reshape(-1, 1).repeat(k+1, axis=1) * X, axis=0)
 
         if l2 > 0:
-            gradient += 2*l2*(params - _get_identity_weights(k,
+            if comp_l2:
+                temp = params.copy()
+                temp[0::(k+2)] = 0  # diagonal, +1 for intercept and +1 for a next column.
+                temp[(k-1)::(k+1)] = 0  # one before last column
+                gradient += 2*l2*(temp)
+            else:
+                gradient += 2*l2*(params - _get_identity_weights(k,
                                                              method)[_get_weights_indices(k,
                                                                                           method)])
     elif method is 'Diag':
@@ -314,7 +365,7 @@ def _gradient(params, *args):
 
 
 def _hessian(params, *args):
-    (X, XXT, y, k, method, l2) = args
+    (X, XXT, y, k, method, l2, comp_l2) = args
     weights = _get_weights(params, k, method)
     outputs = _calculate_outputs(weights, X)
     n = np.shape(X)[0]
@@ -332,7 +383,15 @@ def _hessian(params, *args):
                 else:
                     hessian[i * (k + 1): (i + 1) * (k + 1), j * (k + 1): (j + 1) * (k + 1)] += \
                             hessian[j * (k + 1): (j + 1) * (k + 1), i * (k + 1): (i + 1) * (k + 1)]
-        hessian[np.diag_indices(k**2 - 1)] += 2*l2
+        
+        if comp_l2:  # Regularize hessian for complementary regularization
+            for i in range(0, k**2 - 1):  # Go over diagonal indices
+                if (i % (k+2) != 0) and (i % (k+1) != k-1):  # Only add on regularized points (so not for diagonal and one before last column)
+                    hessian[i, i] += 2*l2
+                    
+        else:
+            hessian[np.diag_indices(k**2 - 1)] += 2*l2
+
 
     elif method is 'Diag':
 
