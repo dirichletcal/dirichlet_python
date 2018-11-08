@@ -15,7 +15,7 @@ class DirichletCalibrator(BaseEstimator, RegressorMixin):
 
         self.matrix_type = matrix_type
         self.l2 = l2
-        self.comp_l2 = False
+        self.comp_l2 = comp_l2
 
     def fit(self, X, y, X_val=None, y_val=None, **kwargs):
 
