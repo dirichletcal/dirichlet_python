@@ -219,7 +219,6 @@ def _newton_update(weights_0, X, XX_T, target, k, method_, maxiter=int(131),
         for step_size in np.hstack((np.linspace(1, 0.1, 10),
                                     np.logspace(-2, -32, 31))):
 
-                                    
             tmp_w = weights - (updates * step_size).ravel()
 
             L = _objective(tmp_w, X, XX_T, target, k, method_, l2, comp_l2)
@@ -245,6 +244,7 @@ def _newton_update(weights_0, X, XX_T, target, k, method_, maxiter=int(131),
         else:
             weights = tmp_w.copy()
 
+    L = _objective(weights, X, XX_T, target, k, method_, l2, comp_l2)
     logging.debug("{}: after {} iterations final log-loss = {:.7e}, sum_grad = {:.7e}".format(
         method_, i, L, np.abs(gradient).sum()))
     #logging.debug("weights = \n{}".format(weights))
