@@ -51,8 +51,9 @@ class MultinomialRegression(BaseEstimator, RegressorMixin):
             weights = _newton_update(self.weights_0_, X_, XXT, target, k,
                                      self.method_, l2=self.l2)
         else:
-            scipy.optimize.fmin_l_bfgs_b(func=_objective, fprime=_gradient,
-                                         x0=self.weights_0_, args=(X_, XXT, y, k, self.method_, self.l2))
+            res = scipy.optimize.fmin_l_bfgs_b(func=_objective, fprime=_gradient,
+                                               x0=self.weights_0_, args=(X_, XXT, target, k, self.method_, self.l2))
+            weights = res[0]
 
         # logging.debug('===================================================================')
         # if res.success:
@@ -91,7 +92,7 @@ class MultinomialRegression(BaseEstimator, RegressorMixin):
 
         '''
 
-        if initializer not in ['identity', 'randn']:
+        if initializer not in ['identity', 'randn', None]:
             raise ValueError
 
         k = len(self.classes)
@@ -171,7 +172,10 @@ def _newton_update(weights_0, X, XX_T, target, k, method_, maxiter=int(131),
 
         hessian = _hessian(weights, X, XX_T, target, k, method_, l2)
 
-        updates = np.matmul(scipy.linalg.pinv2(hessian), gradient)
+        if method_ is 'FixDiag':
+            updates = gradient / hessian
+        else:
+            updates = np.matmul(scipy.linalg.pinv2(hessian), gradient)
 
         for step_size in np.hstack((np.linspace(1, 0.1, 10),
                                     np.logspace(-2, -32, 31))):
@@ -216,7 +220,7 @@ def _get_weights(params, k, method):
         weights[:-1, :] = params.reshape(-1, k + 1)
 
     elif method is 'FixDiag':
-        weights = np.zeros([k, k-1])
+        weights = np.zeros([k, k])
         weights[np.diag_indices(k - 1)] = params[0]
 
     return weights
@@ -242,7 +246,8 @@ def _objective(params, *args):
     loss = log_loss(y, outputs)
     #from IPython import embed; embed()
     if l2 != 0:
-        loss = loss + l2*np.sum((weights - _get_identity_weights(k, method))**2)
+        # loss = loss + l2*np.sum((weights - _get_identity_weights(k, method))**2)
+        loss = loss + l2*np.sum(weights ** 2)
     #logging.debug('Loss is:')
     #logging.debug(loss)
     #logging.debug('Parameter is:')
@@ -257,18 +262,19 @@ def _gradient(params, *args):
 
     if method in ['Full', None]:
 
-        gradient = np.sum((outputs[:, :-1] - y[:, :-1]).repeat(k+1, axis=1) * np.vstack([X] * (k-1)), axis=0)
-
-        if l2 > 0:
-            gradient += 2*l2*(params - _get_identity_weights(k,
-                                                             method)[_get_weights_indices(k,
-                                                                                          method)])
+        gradient = np.sum((outputs[:, :-1] - y[:, :-1]).repeat(k+1, axis=1) * np.hstack([X] * (k-1)), axis=0)
 
     elif method is 'FixDiag':
 
         gradient = np.zeros(1)
 
         gradient[0] += np.sum((outputs[:, :-1] - y[:, :-1]) * X[:, :-1])
+
+    if l2 > 0:
+        # gradient += 2*l2*(params - _get_identity_weights(k,
+        #                                                  method)[_get_weights_indices(k,
+        #                                                                               method)])
+        gradient += 2 * l2 * params
 
     #logging.debug(gradient)
 
