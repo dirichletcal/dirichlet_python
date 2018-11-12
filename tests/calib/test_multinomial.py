@@ -40,15 +40,9 @@ class TestMultinomial(unittest.TestCase):
         np.testing.assert_array_equal(full_matrix, expected)
 
         k = 3
-        params = np.arange(k + k - 1) + 1
-        full_matrix = _get_weights(params, k=k, method='Diag')
-        expected = np.array([[1, 0, 0, 2], [0, 3, 0, 4], [0, 0, 5, 0]], 'float')
-        np.testing.assert_array_equal(full_matrix, expected)
-
-        k = 3
         params = np.arange(k) + 1
         full_matrix = _get_weights(params, k=k, method='FixDiag')
-        expected = np.array([[1, 0, 2], [0, 1, 3], [0, 0, 0]], 'float')
+        expected = np.array([[1, 0, 0], [0, 1, 0], [0, 0, 0]], 'float')
         np.testing.assert_array_equal(full_matrix, expected)
 
 
