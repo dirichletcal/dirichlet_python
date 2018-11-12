@@ -141,7 +141,7 @@ def _get_identity_weights(n_classes, method):
         weights = _get_weights(weights, n_classes, method)
         weights[np.diag_indices(n_classes - 1)] = 1
         weights[:-1, -2] = -1
-        weights = weights.ravel()
+        weights = weights[:-1, :].ravel()
 
     elif method is 'FixDiag':
         weights = np.ones(1)
