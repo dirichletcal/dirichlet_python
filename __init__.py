@@ -9,23 +9,28 @@ from dirichlet.calib.fixeddirichlet import FixedDiagonalDirichletCalibrator
 
 
 class DirichletCalibrator(BaseEstimator, RegressorMixin):
-    def __init__(self, matrix_type='full', l2=0.0, comp_l2=False):
+    def __init__(self, matrix_type='full', l2=0.0, comp_l2=False,
+                 initializer='identity'):
         if matrix_type not in ['full', 'diagonal', 'fixed_diagonal']:
             raise(ValueError)
 
         self.matrix_type = matrix_type
         self.l2 = l2
         self.comp_l2 = comp_l2
+        self.initializer = initializer
 
     def fit(self, X, y, X_val=None, y_val=None, **kwargs):
 
         if self.matrix_type == 'diagonal':
-            self.calibrator_ = DiagonalDirichletCalibrator(l2=self.l2)
+            self.calibrator_ = DiagonalDirichletCalibrator(l2=self.l2,
+                                                       initializer=self.initializer)
         elif self.matrix_type == 'fixed_diagonal':
-            self.calibrator_ = FixedDiagonalDirichletCalibrator(l2=self.l2)
+            self.calibrator_ = FixedDiagonalDirichletCalibrator(l2=self.l2,
+                                                       initializer=self.initializer)
         else:
             self.calibrator_ = FullDirichletCalibrator(l2=self.l2,
-                                                       comp_l2=self.comp_l2)
+                                                       comp_l2=self.comp_l2,
+                                                       initializer=self.initializer)
 
         _X = np.copy(X)
         if len(X.shape) == 1:

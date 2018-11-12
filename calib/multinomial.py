@@ -97,7 +97,7 @@ class MultinomialRegression(BaseEstimator, RegressorMixin):
 
         '''
 
-        if initializer not in ['identity', 'randn', None]:
+        if initializer not in ['identity', None, 'preFixDiag']:
             raise ValueError
 
         k = len(self.classes)
