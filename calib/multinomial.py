@@ -57,7 +57,9 @@ class MultinomialRegression(BaseEstimator, RegressorMixin):
                                                x0=self.weights_0_,
                                                args=(X_, XXT, target, k,
                                                      self.method_, self.l2,
-                                                     self.comp_l2))
+                                                     self.comp_l2),
+                                               maxls=128,
+                                               factr=1.0)
             weights = res[0]
 
         # logging.debug('===================================================================')
@@ -283,7 +285,7 @@ def _objective(params, *args):
     (X, _, y, k, method, l2, comp_l2) = args
     weights = _get_weights(params, k, method)
     outputs = _calculate_outputs(weights, X)
-    loss = log_loss(y, outputs)
+    loss = log_loss(y, outputs, normalize=False)
     #from IPython import embed; embed()
     if l2 != 0:
         if comp_l2:  # off-diagonal regularization
