@@ -6,12 +6,13 @@ from sklearn.base import BaseEstimator, RegressorMixin
 from dirichlet.calib.fulldirichlet import FullDirichletCalibrator
 from dirichlet.calib.diagdirichlet import DiagonalDirichletCalibrator
 from dirichlet.calib.fixeddirichlet import FixedDiagonalDirichletCalibrator
+from dirichlet.calib.confdirichlet import ConfDirichletCalibrator
 
 
 class DirichletCalibrator(BaseEstimator, RegressorMixin):
     def __init__(self, matrix_type='full', l2=0.0, comp_l2=False,
                  initializer='identity'):
-        if matrix_type not in ['full', 'diagonal', 'fixed_diagonal']:
+        if matrix_type not in ['conf', 'full', 'diagonal', 'fixed_diagonal']:
             raise(ValueError)
 
         self.matrix_type = matrix_type
@@ -27,8 +28,12 @@ class DirichletCalibrator(BaseEstimator, RegressorMixin):
         elif self.matrix_type == 'fixed_diagonal':
             self.calibrator_ = FixedDiagonalDirichletCalibrator(l2=self.l2,
                                                        initializer=self.initializer)
-        else:
+        elif self.matrix_type == 'full':
             self.calibrator_ = FullDirichletCalibrator(l2=self.l2,
+                                                       comp_l2=self.comp_l2,
+                                                       initializer=self.initializer)
+        else:
+            self.calibrator_ = ConfDirichletCalibrator(l2=self.l2,
                                                        comp_l2=self.comp_l2,
                                                        initializer=self.initializer)
 
