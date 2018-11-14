@@ -31,7 +31,8 @@ class ConfDirichletCalibrator(BaseEstimator, RegressorMixin):
         y_pred = X.argmax(axis=1)
         conf_matrix = confusion_matrix(y, y_pred)
         c = conf_matrix - conf_matrix[-1]
-        self.calibrator_ = {'coef_': c[:-1]}
+        c = 2 * ((c - c.min()) / (c.max() - c.min())) - 1.0
+        self.calibrator_ = {'coef_': c}
         return self
 
     @property
