@@ -151,7 +151,7 @@ class MultinomialRegression(BaseEstimator, RegressorMixin):
         # Calculate outputs and loss
         outputs = _calculate_outputs(weights, X_)
         outputs = clip(outputs)
-        loss = log_loss(y, outputs)
+        loss = log_loss(y, outputs, normalize=False)
 
         #from IPython import embed; embed()
         if l2 != 0:
