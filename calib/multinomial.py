@@ -151,7 +151,7 @@ class MultinomialRegression(BaseEstimator, RegressorMixin):
         # Calculate outputs and loss
         outputs = _calculate_outputs(weights, X_)
         outputs = clip(outputs)
-        loss = log_loss(y, outputs, normalize=False)
+        loss = log_loss(y, outputs, normalize=True)
 
         #from IPython import embed; embed()
         if l2 != 0:
@@ -285,7 +285,7 @@ def _objective(params, *args):
     (X, _, y, k, method, l2, comp_l2) = args
     weights = _get_weights(params, k, method)
     outputs = _calculate_outputs(weights, X)
-    loss = log_loss(y, outputs, normalize=False)
+    loss = log_loss(y, outputs, normalize=True)
     #from IPython import embed; embed()
     if l2 != 0:
         if comp_l2:  # off-diagonal regularization
@@ -312,14 +312,14 @@ def _gradient(params, *args):
 
     if method in ['Full', None]:
 
-        gradient = np.sum((outputs[:, :-1] - y[:, :-1]).repeat(k+1, axis=1) \
+        gradient = np.mean((outputs[:, :-1] - y[:, :-1]).repeat(k+1, axis=1) \
                    * np.hstack([X] * (k-1)), axis=0)
 
     elif method is 'FixDiag':
 
         gradient = np.zeros(1)
 
-        gradient[0] += np.sum((outputs[:, :-1] - y[:, :-1]) * X[:, :-1])
+        gradient[0] += np.mean((outputs[:, :-1] - y[:, :-1]) * X[:, :-1])
 
     if l2 > 0:
         if comp_l2:
@@ -351,7 +351,7 @@ def _hessian(params, *args):
                 if i <= j:
                     tmp_diff = outputs[:, i] * (int(i == j) - outputs[:, j])
                     tmp_diff = tmp_diff.ravel().repeat((k + 1) ** 2).reshape(n, k + 1, k + 1)
-                    hessian[i * (k + 1): (i + 1) * (k + 1), j * (k + 1): (j + 1) * (k + 1)] += np.sum(tmp_diff * XXT,
+                    hessian[i * (k + 1): (i + 1) * (k + 1), j * (k + 1): (j + 1) * (k + 1)] += np.mean(tmp_diff * XXT,
                                                                                                       axis=0)
                 else:
                     hessian[i * (k + 1): (i + 1) * (k + 1), j * (k + 1): (j + 1) * (k + 1)] += \
@@ -369,7 +369,7 @@ def _hessian(params, *args):
 
         hessian = np.zeros([1])
 
-        hessian[0] = np.sum(np.sum(outputs[:, :-1] * (X[:, :-1] * X[:, :-1]), axis=1)
+        hessian[0] = np.mean(np.sum(outputs[:, :-1] * (X[:, :-1] * X[:, :-1]), axis=1)
                             - np.sum(outputs[:, :-1] * X[:, :-1], axis=1) ** 2)
 
         hessian[0] += 2*l2
