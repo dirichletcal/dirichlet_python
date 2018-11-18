@@ -67,6 +67,7 @@ class FullDirichletCalibrator(BaseEstimator, RegressorMixin):
                                                      weights_0=self.weights_)
             self.calibrator_.fit(_X, y, *args, **kwargs)
 
+        self.weights_ = self.calibrator_.weights_
         return self
 
     @property

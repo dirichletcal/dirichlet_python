@@ -16,6 +16,7 @@ class DirichletCalibrator(BaseEstimator, RegressorMixin):
 
         self.matrix_type = matrix_type
         self.l2 = l2
+        self.l2_grid = l2
         self.comp_l2 = comp_l2
         self.initializer = initializer
 
@@ -44,18 +45,12 @@ class DirichletCalibrator(BaseEstimator, RegressorMixin):
 
         self.calibrator_ = self.calibrator_.fit(_X, y, X_val=_X_val,
                                                 y_val=y_val, **kwargs)
+
+        self.l2 = self.calibrator_.l2
+        self.weights_ = self.calibrator_.weights_
+        self.coef_ = self.calibrator_.coef_
+        self.intercept_ = self.calibrator_.intercept_
         return self
-
-
-    @property
-    def coef_(self):
-        return self.calibrator_.coef_
-
-
-    @property
-    def intercept_(self):
-        return self.calibrator_.intercept_
-
 
     def predict_proba(self, S):
 
