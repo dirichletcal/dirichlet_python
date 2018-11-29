@@ -8,6 +8,7 @@ from sklearn.metrics import log_loss
 
 from .multinomial import _get_identity_weights
 
+
 class FullDirichletCalibrator(BaseEstimator, RegressorMixin):
     def __init__(self, l2=0.0, comp_l2=False, weights_init=None,
                  initializer='identity'):
