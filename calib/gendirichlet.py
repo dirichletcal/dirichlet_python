@@ -79,7 +79,7 @@ def _fit_dirichlet(ln_X, alpha):
                 alpha[l] = alpha[l] - \
                               (scipy.special.digamma(alpha[l]) - Psi[l]) / scipy.special.polygamma(1, alpha[l])
 
-        if numpy.sum(numpy.abs(alpha - alpha_old)) <= 1e-8:
+        if numpy.sum(numpy.abs(alpha - alpha_old)) <= 1e-15:
             break
 
     return alpha
