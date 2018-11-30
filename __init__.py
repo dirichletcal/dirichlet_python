@@ -6,12 +6,13 @@ from sklearn.base import BaseEstimator, RegressorMixin
 from dirichlet.calib.fulldirichlet import FullDirichletCalibrator
 from dirichlet.calib.diagdirichlet import DiagonalDirichletCalibrator
 from dirichlet.calib.fixeddirichlet import FixedDiagonalDirichletCalibrator
+from dirichlet.calib.gendirichlet import GenerativeDirichletCalibrator
 
 
 class DirichletCalibrator(BaseEstimator, RegressorMixin):
     def __init__(self, matrix_type='full', l2=0.0, comp_l2=False,
                  initializer='identity'):
-        if matrix_type not in ['full', 'diagonal', 'fixed_diagonal']:
+        if matrix_type not in ['full', 'full_gen', 'diagonal', 'fixed_diagonal']:
             raise(ValueError)
 
         self.matrix_type = matrix_type
@@ -28,10 +29,14 @@ class DirichletCalibrator(BaseEstimator, RegressorMixin):
         elif self.matrix_type == 'fixed_diagonal':
             self.calibrator_ = FixedDiagonalDirichletCalibrator(l2=self.l2,
                                                        initializer=self.initializer)
-        else:
+        elif self.matrix_type == 'full':
             self.calibrator_ = FullDirichletCalibrator(l2=self.l2,
                                                        comp_l2=self.comp_l2,
                                                        initializer=self.initializer)
+        elif self.matrix_type == 'full_gen':
+            self.calibrator_ = GenerativeDirichletCalibrator()
+        else:
+            raise(ValueError)
 
         _X = np.copy(X)
         if len(X.shape) == 1:
@@ -46,10 +51,14 @@ class DirichletCalibrator(BaseEstimator, RegressorMixin):
         self.calibrator_ = self.calibrator_.fit(_X, y, X_val=_X_val,
                                                 y_val=y_val, **kwargs)
 
-        self.l2 = self.calibrator_.l2
-        self.weights_ = self.calibrator_.weights_
-        self.coef_ = self.calibrator_.coef_
-        self.intercept_ = self.calibrator_.intercept_
+        if hasattr(self.calibrator_, 'l2'):
+            self.l2 = self.calibrator_.l2
+        if hasattr(self.calibrator_, 'weights_'):
+            self.weights_ = self.calibrator_.weights_
+        if hasattr(self.calibrator_, 'coef_'):
+            self.coef_ = self.calibrator_.coef_
+        if hasattr(self.calibrator_, 'intercept_'):
+            self.intercept_ = self.calibrator_.intercept_
         return self
 
     def predict_proba(self, S):
