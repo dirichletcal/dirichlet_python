@@ -20,6 +20,7 @@ class GenerativeDirichletCalibrator(BaseEstimator):
         self.weights_ = None
 
     def fit(self, X, y, X_val=None, y_val=None):
+        
         ln_X = numpy.log(clip_for_log(X))
 
         self.classes = numpy.unique(y)
@@ -36,17 +37,19 @@ class GenerativeDirichletCalibrator(BaseEstimator):
         pi = numpy.mean(target, axis=0)
 
         if self.alpha is None:
+            
             self.alpha = numpy.ones((k, k))
 
         for i in range(0, k):
+            
             self.alpha[i, :] = _fit_dirichlet(ln_X[target[:, i] == 1], self.alpha[i, :])
 
             self.weights_[i, :-1] = self.alpha[i, :] - 1
 
-            temp_b = (pi[i] * scipy.special.gamma(numpy.sum(self.alpha[i, :]))
-                      / numpy.prod(scipy.special.gamma(self.alpha[i, :])))
-            temp_b = clip_for_log(temp_b)
-            self.weights_[i, -1] = numpy.log(temp_b)
+            self.weights_[i, -1] = numpy.log(pi[i]) \
+                    + scipy.special.gammaln(numpy.sum(self.alpha[i, :])) \
+                    - numpy.sum(scipy.special.gammaln(self.alpha[i, :]))
+        
         return self
 
     def predict_proba(self, S):
