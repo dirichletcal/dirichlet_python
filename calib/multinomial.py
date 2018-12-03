@@ -17,7 +17,7 @@ class MultinomialRegression(BaseEstimator, RegressorMixin):
     def __init__(self, weights_0=None, method=None, initializer='identity',
                  l2=0.0, comp_l2=False):
         if method not in [None, 'Full', 'FixDiag']:
-            raise(ValueError)
+            raise(ValueError('method {} not available'.format(method)))
 
         self.weights_ = weights_0
         self.weights_0_ = weights_0
