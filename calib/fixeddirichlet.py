@@ -97,7 +97,6 @@ class FixedDiagonalDirichletCalibrator(BaseEstimator, RegressorMixin):
         return self.calibrator_.intercept_
 
     def predict_proba(self, S):
-        print(self.weights_)
         S = np.log(clip_for_log(S))
         k = np.shape(S)[1]
         tmp_prod = self.weights_ * S
