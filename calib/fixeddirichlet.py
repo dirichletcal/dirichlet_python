@@ -1,9 +1,11 @@
 import autograd
 import autograd.numpy as np
 
-from ..utils import clip_for_log
-
 from sklearn.base import BaseEstimator, RegressorMixin
+
+def clip_for_log(X):
+    eps = np.finfo(X.dtype).tiny
+    return np.clip(X, eps, 1-eps)
 
 class FixedDiagonalDirichletCalibrator(BaseEstimator, RegressorMixin):
     def fit(self, X, y, batch_size=128, lr=1e-3, beta_1=0.9, beta_2=0.999,
@@ -107,3 +109,19 @@ class FixedDiagonalDirichletCalibrator(BaseEstimator, RegressorMixin):
         prob_y = np.exp(tmp_prod) / np.sum(np.exp(tmp_prod), axis=1)
         return prob_y
 
+
+if __name__ == '__main__':
+    from sklearn import datasets
+
+    # import some data to play with
+    iris = datasets.load_iris()
+    X = iris.data[:, :3]  # we only take the first two features.
+    y = iris.target
+
+    softmax = lambda z:np.divide(np.exp(z).T, np.sum(np.exp(z), axis=1)).T
+    S = softmax(X)
+
+    print(S)
+    print(y)
+    calibrator = FixedDiagonalDirichletCalibrator()
+    calibrator.fit(S, y)
