@@ -36,9 +36,9 @@ class FixedDiagonalDirichletCalibrator(BaseEstimator, RegressorMixin):
 
             for j in range(0, batch_num):
 
-                L_t = self._objective(self, T, X, y_hot)
+                L_t = self._objective(T, X, y_hot)
 
-                g_t = get_gradient(self, T, X, y_hot)
+                g_t = get_gradient(T, X, y_hot)
 
                 m = beta_1 * m + (1 - beta_1) * g_t
 
@@ -81,7 +81,7 @@ class FixedDiagonalDirichletCalibrator(BaseEstimator, RegressorMixin):
 
         tmp_prod = T * np.log(X)
 
-        prob_y = np.exp(tmp_prod) / np.sum(np.exp(tmp_prod), axis=1)
+        prob_y = np.exp(tmp_prod) / np.sum(np.exp(tmp_prod), axis=1).reshape(-1, 1)
 
         loss = -np.sum(np.log(np.sum(prob_y * y_hot, axis=1)))
 
@@ -96,17 +96,18 @@ class FixedDiagonalDirichletCalibrator(BaseEstimator, RegressorMixin):
         return self.calibrator_.intercept_
 
     def predict_proba(self, S):
+        print(self.weights_)
         S = np.log(clip_for_log(S))
         k = np.shape(S)[1]
-        tmp_prod = self.T * np.log(S)
-        prob_y = np.exp(tmp_prod) / np.sum(np.exp(tmp_prod), axis=1)
+        tmp_prod = self.weights_ * S
+        prob_y = np.exp(tmp_prod) / np.sum(np.exp(tmp_prod), axis=1).reshape(-1, 1)
         return prob_y
 
     def predict(self, S):
         S = np.log(clip_for_log(S))
         k = np.shape(S)[1]
-        tmp_prod = self.T * np.log(S)
-        prob_y = np.exp(tmp_prod) / np.sum(np.exp(tmp_prod), axis=1)
+        tmp_prod = self.weights_ * S
+        prob_y = np.exp(tmp_prod) / np.sum(np.exp(tmp_prod), axis=1).reshape(-1, 1)
         return prob_y
 
 
@@ -125,3 +126,4 @@ if __name__ == '__main__':
     print(y)
     calibrator = FixedDiagonalDirichletCalibrator()
     calibrator.fit(S, y)
+    print(calibrator.predict_proba(S))
