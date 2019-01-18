@@ -1,14 +1,13 @@
 import autograd
 import autograd.numpy as np
 
-from .fulldirichlet import FullDirichletCalibrator
 from ..utils import clip_for_log
 
+from sklearn.base import BaseEstimator, RegressorMixin
 
-class FixedDiagonalDirichletCalibrator(FullDirichletCalibrator):
-
-    def fit(self, X, y, batch_size=128, lr=1e-3, beta_1=0.9, beta_2=0.999, eeps=1e-8, maxiter=int(1024),
-            factor=1e-4, *args, **kwargs):
+class FixedDiagonalDirichletCalibrator(BaseEstimator, RegressorMixin):
+    def fit(self, X, y, batch_size=128, lr=1e-3, beta_1=0.9, beta_2=0.999,
+            eeps=1e-8, maxiter=int(1024), factor=1e-4, *args, **kwargs):
         eps = np.finfo(X.dtype).min
         X_ = np.log(clip_for_log(X))
         k = np.shape(X_)[1]
@@ -23,7 +22,7 @@ class FixedDiagonalDirichletCalibrator(FullDirichletCalibrator):
         if batch_size is None:
             batch_size = n_y
 
-        get_gradient = autograd.gradient(self._objective, 0)
+        get_gradient = autograd.grad(self._objective, 0)
 
         batch_idx = np.hstack([np.arange(0, n_y, batch_size), n_y])
 
@@ -107,5 +106,4 @@ class FixedDiagonalDirichletCalibrator(FullDirichletCalibrator):
         tmp_prod = self.T * np.log(S)
         prob_y = np.exp(tmp_prod) / np.sum(np.exp(tmp_prod), axis=1)
         return prob_y
-
 
