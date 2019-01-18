@@ -21,6 +21,7 @@ class FixedDiagonalDirichletCalibrator(BaseEstimator, RegressorMixin):
         m = np.zeros(1)
         v = np.zeros(1)
         T = 1.0
+        fin_T = T
         if batch_size is None:
             batch_size = n_y
 
