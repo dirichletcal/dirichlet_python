@@ -61,6 +61,16 @@ class DirichletCalibrator(BaseEstimator, RegressorMixin):
             self.intercept_ = self.calibrator_.intercept_
         return self
 
+    @property
+    def cannonical_weights(self):
+        b = self.weights_[:, -1]
+        W = self.weights_[:,:-1]
+        col_min = np.min(W,axis=0)
+        A = W - col_min
+        softmax = lambda z:np.divide(np.exp(z), np.sum(np.exp(z)))
+        c = softmax(np.matmul(W, np.log(np.ones(len(b))/len(b))) + b)
+        return np.hstack((A, c.reshape(-1,1)))
+
     def predict_proba(self, S):
 
         _S = np.copy(S)
