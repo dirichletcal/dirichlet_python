@@ -130,7 +130,9 @@ class TypeIIDirichletCalibrator(BaseEstimator, RegressorMixin):
 
     def predict_proba(self, x, sample_size=1024):
 
-        feature_x = numpy.log(x)
+        n_y = numpy.shape(x)[0]
+
+        feature_x = numpy.hstack([numpy.log(x), numpy.ones((n_y, 1))])
 
         k = numpy.shape(x)[1]
 
