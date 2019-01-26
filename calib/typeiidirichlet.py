@@ -13,7 +13,7 @@ class TypeIIDirichletCalibrator(BaseEstimator, RegressorMixin):
         self.theta_w = None
 
     def fit(self, x, y, batch_size=128, sample_size=128, lr=1e-2, beta_1=0.9, beta_2=0.999,
-            eps=1e-8, max_batch=int(1e8), factr=1e-3):
+            eps=1e-8, max_batch=int(1e8), factr=1e-8):
 
         n_y = numpy.shape(x)[0]
 
@@ -26,6 +26,8 @@ class TypeIIDirichletCalibrator(BaseEstimator, RegressorMixin):
         y_hot = numpy.zeros((n_y, k))
 
         theta_w = numpy.zeros((2*k, k+1))
+
+        theta_w[k:, :] = 1.0
 
         for i in range(0, k):
             y_hot[y == i, i] = 1.0
@@ -54,6 +56,8 @@ class TypeIIDirichletCalibrator(BaseEstimator, RegressorMixin):
             for j in range(0, batch_num):
 
                 L_t = self._objective(theta_w, feature_x, y_hot, k, sample_size)
+
+                print(L_t)
 
                 g_t = get_gradient(theta_w, feature_x, y_hot, k, sample_size)
 
@@ -116,7 +120,7 @@ class TypeIIDirichletCalibrator(BaseEstimator, RegressorMixin):
 
         e = numpy.random.randn(sample_size, k*(k+1))
 
-        sample_w = (e * (sigma_w**2**0.5) + mu_w).reshape(sample_size, k+1, k)
+        sample_w = (e * ((sigma_w**2)**0.5) + mu_w).reshape(sample_size, k+1, k)
 
         prod = numpy.matmul(feature_x, sample_w)
 
@@ -142,7 +146,7 @@ class TypeIIDirichletCalibrator(BaseEstimator, RegressorMixin):
 
         e = numpy.random.randn(sample_size, k*(k+1))
 
-        sample_w = (e * (sigma_w**2**0.5) + mu_w).reshape(sample_size, k+1, k)
+        sample_w = (e * ((sigma_w**2)**0.5) + mu_w).reshape(sample_size, k+1, k)
 
         prod = numpy.matmul(feature_x, sample_w)
 
