@@ -13,7 +13,7 @@ class TypeIIDirichletCalibrator(BaseEstimator, RegressorMixin):
         self.theta_w = None
 
     def fit(self, x, y, batch_size=128, sample_size=128, lr=1e-2, beta_1=0.9, beta_2=0.999,
-            eps=1e-8, max_batch=int(1e8), factr=1e-8):
+            eps=1e-8, max_batch=int(1e8), factr=1e-8, **kwargs):
 
         n_y = numpy.shape(x)[0]
 
