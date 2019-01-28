@@ -12,8 +12,8 @@ class TypeIIDirichletCalibrator(BaseEstimator, RegressorMixin):
 
         self.theta_w = None
 
-    def fit(self, x, y, batch_size=32, sample_size=128, lr=1e-2, beta_1=0.9, beta_2=0.999,
-            eps=1e-8, max_batch=int(1e8), factr=1e-8, **kwargs):
+    def fit(self, x, y, batch_size=16, sample_size=128, lr=1e-2, beta_1=0.9, beta_2=0.999,
+            eps=1e-8, max_batch=int(1e8), factr=0.0, **kwargs):
 
         n_y = numpy.shape(x)[0]
 
@@ -46,7 +46,13 @@ class TypeIIDirichletCalibrator(BaseEstimator, RegressorMixin):
         batch_idx = numpy.arange(0, n_y, batch_size)
 
         if len(batch_idx) == 1:
-            batch_idx = numpy.hstack([batch_idx, n_y])
+            feature_x = feature_x.repeat(batch_size, axis=0)
+            y_hot = y_hot.repeat(batch_size, axis=0)
+            n_y = numpy.shape(y_hot)[0]
+            per_idx = numpy.random.permutation(n_y)
+            feature_x = feature_x[per_idx]
+            y_hot = y_hot[per_idx]
+            batch_idx = numpy.arange(0, n_y, batch_size)
 
         batch_num = len(batch_idx) - 1
 
@@ -60,11 +66,20 @@ class TypeIIDirichletCalibrator(BaseEstimator, RegressorMixin):
 
             for j in range(0, batch_num):
 
-                L_t = self._objective(theta_w, feature_x, y_hot, k, sample_size)
+                L_t = self._objective(theta_w,
+                                      feature_x[batch_idx[j]:batch_idx[j+1]],
+                                      y_hot[batch_idx[j]:batch_idx[j+1]],
+                                      k,
+                                      sample_size)
 
-                print(L_t)
+                # print(L_t)
 
-                g_t = get_gradient(theta_w, feature_x, y_hot, k, sample_size)
+                g_t = get_gradient(theta_w,
+                                   feature_x[batch_idx[j]:batch_idx[j+1]],
+                                   y_hot[batch_idx[j]:batch_idx[j+1]],
+                                   k, sample_size)
+
+                # print(L_t)
 
                 g_t[numpy.isnan(g_t)] = 0.0
 
@@ -78,8 +93,8 @@ class TypeIIDirichletCalibrator(BaseEstimator, RegressorMixin):
 
                 batch_L.append(L_t)
 
-                if len(batch_L) >= 8:
-                    mean_L.append(numpy.mean(batch_L[-8:]))
+                if len(batch_L) >= 128:
+                    mean_L.append(numpy.mean(batch_L[-128:]))
                 else:
                     for o in range(0, len(mean_L)):
                         mean_L[o] = numpy.mean(batch_L)
@@ -89,11 +104,11 @@ class TypeIIDirichletCalibrator(BaseEstimator, RegressorMixin):
                     if mean_L[-1] < numpy.min(mean_L[:-1]):
                         fin_theta_w = theta_w.copy()
 
-                if len(mean_L) > 64:
+                if len(mean_L) > 1024:
 
-                    previous_opt = numpy.min(mean_L.copy()[:-64])
+                    previous_opt = numpy.min(mean_L.copy()[:-1024])
 
-                    current_opt = numpy.min(mean_L.copy()[-64:])
+                    current_opt = numpy.min(mean_L.copy()[-1024:])
 
                     if previous_opt - current_opt <= numpy.abs(previous_opt * factr):
 
@@ -118,6 +133,10 @@ class TypeIIDirichletCalibrator(BaseEstimator, RegressorMixin):
                 break
 
         self.theta_w = fin_theta_w
+
+        # print(mean_L[-1])
+        #
+        # print('Done!===========================================================================')
 
         return self
 
@@ -164,7 +183,9 @@ class TypeIIDirichletCalibrator(BaseEstimator, RegressorMixin):
 
         sample_w = (e * ((sigma_w**2)**0.5) + mu_w).reshape(sample_size, k+1, k)
 
-        prod = numpy.matmul(feature_x, sample_w)
+        raw_prod = numpy.matmul(feature_x, sample_w)
+
+        prod = raw_prod - numpy.max(raw_prod, axis=2)[:, :, numpy.newaxis]
 
         p_y = numpy.mean(numpy.exp(prod) /
                          numpy.sum(numpy.exp(prod), axis=2)[:, :, numpy.newaxis].repeat(k, axis=2),
