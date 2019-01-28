@@ -45,6 +45,9 @@ class TypeIIDirichletCalibrator(BaseEstimator, RegressorMixin):
 
         batch_idx = numpy.arange(0, n_y, batch_size)
 
+        if len(batch_idx) == 1:
+            batch_idx = numpy.hstack([batch_idx, n_y])
+
         batch_num = len(batch_idx) - 1
 
         converge = False
@@ -193,6 +196,8 @@ if __name__ == '__main__':
     calibrator = TypeIIDirichletCalibrator()
     calibrator.fit(S, y)
     print(calibrator.predict_proba(S))
+    
+
 
 
 
