@@ -131,13 +131,18 @@ class TypeIIDirichletCalibrator(BaseEstimator, RegressorMixin):
 
         sample_w = (e * ((sigma_w**2)**0.5) + mu_w).reshape(sample_size, k+1, k)
 
-        prod = numpy.matmul(feature_x, sample_w)
+        raw_prod = numpy.matmul(feature_x, sample_w)
+
+        prod = raw_prod - numpy.max(raw_prod, axis=2)[:, :, numpy.newaxis]
 
         p_y = numpy.mean(numpy.exp(prod) /
                          numpy.sum(numpy.exp(prod), axis=2)[:, :, numpy.newaxis].repeat(k, axis=2),
                          axis=0)
 
         brier = numpy.mean(numpy.sum((p_y - y_hot)**2, axis=1))
+
+        if numpy.isnan(brier):
+            import pdb; pdb.set_trace()
 
         return brier
 
