@@ -25,6 +25,8 @@ class VectorScaling(BaseEstimator, RegressorMixin):
 
     def fit(self, X, y, X_val=None, y_val=None, *args, **kwargs):
 
+        k = np.shape(X)[1]
+
         if X_val is None:
             X_val = X.copy()
             y_val = y.copy()
@@ -35,8 +37,8 @@ class VectorScaling(BaseEstimator, RegressorMixin):
             _X_val = np.copy(X_val)
             _X_val = np.log(clip_for_log(X_val))
             if self.logit_constant is None:
-                _X = _X - _X[:, -1]
-                _X_val = _X_val[:, -1]
+                _X = _X - _X[:, -1].reshape(-1, 1).repeat(k, axis=1)
+                _X_val = _X_val[:, -1].reshape(-1, 1).repeat(k, axis=1)
             else:
                 _X = _X - self.logit_constant
                 _X_val = _X_val - self.logit_constant
@@ -80,30 +82,32 @@ class VectorScaling(BaseEstimator, RegressorMixin):
 
     def predict_proba(self, S):
         S = np.log(clip_for_log(S))
+        k = np.shape(S)[1]
 
         if self.logit_input == False:
             _S = np.copy(S)
             _S = np.log(clip_for_log(_S))
             if self.logit_constant is None:
-                _S = _S - _S[:, -1]
+                _S = _S - _S[:, -1].reshape(-1, 1).repeat(k, axis=1)
             else:
                 _S = _S - self.logit_constant
         else:
             _S = np.copy(S)
 
-        return self.calibrator_.predict_proba(_S)
+        return np.asarray(self.calibrator_.predict_proba(_S))
 
     def predict(self, S):
         S = np.log(clip_for_log(S))
+        k = np.shape(S)[1]
 
         if self.logit_input == False:
             _S = np.copy(S)
             _S = np.log(clip_for_log(_S))
             if self.logit_constant is None:
-                _S = _S - _S[:, -1]
+                _S = _S - _S[:, -1].reshape(-1, 1).repeat(k, axis=1)
             else:
                 _S = _S - self.logit_constant
         else:
             _S = np.copy(S)
 
-        return self.calibrator_.predict(_S)
+        return np.asarray(self.calibrator_.predict(_S))

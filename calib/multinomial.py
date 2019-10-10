@@ -16,7 +16,8 @@ import scipy.linalg
 from ..utils import clip
 
 class MultinomialRegression(BaseEstimator, RegressorMixin):
-    def __init__(self, weights_0=None, method=None, initializer='identity', reg_lambda=0.0, reg_mu=False):
+    def __init__(self, weights_0=None, method=None, initializer='identity', 
+                 reg_lambda=0.0, reg_mu=None):
         if method not in [None, 'Full', 'Diag', 'FixDiag']:
             raise(ValueError('method {} not avaliable'.format(method)))
 
@@ -40,11 +41,12 @@ class MultinomialRegression(BaseEstimator, RegressorMixin):
 
         S_ = np.hstack((S, np.ones((len(S), 1))))
 
-        return _calculate_outputs(self.weights_, S_)
+        return np.asarray(_calculate_outputs(self.weights_, S_))
 
     # FIXME Should we change predict for the argmax?
     def predict(self, S):
-        return self.predict_proba(S)
+
+        return np.asarray(self.predict_proba(S))
 
 
     def fit(self, X, y, *args, **kwargs):
@@ -54,6 +56,13 @@ class MultinomialRegression(BaseEstimator, RegressorMixin):
         self.classes = raw_np.unique(y)
 
         k = len(self.classes)
+
+        if self.reg_mu is None:
+            self.reg_lambda = self.reg_lambda / (k * (k + 1))
+        else:
+            self.reg_lambda = self.reg_lambda / (k * (k - 1))
+            self.reg_mu = self.reg_mu / k
+
 
         target = label_binarize(y, self.classes)
 
@@ -135,8 +144,8 @@ def _objective(params, *args):
 
         if reg_mu is None:
             if initializer is 'identity':
-                reg = np.zeros((k, k+1))
-                reg[:, :-1][np.diag_indices(k)] = 1.0
+                reg = np.hstack([np.eye(k), np.zeros((k, 1))])
+                # reg[:, :-1][np.diag_indices(k)] = 1.0
                 loss = loss + reg_lambda * np.sum((weights - reg) ** 2)
             else:
                 loss = loss + reg_lambda * np.sum(weights ** 2)
