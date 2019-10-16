@@ -13,7 +13,7 @@ import scipy
 import scipy.optimize
 import scipy.linalg
 
-from ..utils import clip
+from ..utils import clip, clip_jax
 
 class MultinomialRegression(BaseEstimator, RegressorMixin):
     def __init__(self, weights_0=None, method=None, initializer='identity', 
@@ -139,7 +139,7 @@ class MultinomialRegression(BaseEstimator, RegressorMixin):
 def _objective(params, *args):
         (X, _, y, k, method, reg_lambda, reg_mu, initializer) = args
         weights = _get_weights(params, k, method)
-        outputs = _calculate_outputs(weights, X)
+        outputs = clip_jax(_calculate_outputs(weights, X))
         loss = np.mean(-np.log(np.sum(y * outputs, axis=1)))
 
         if reg_mu is None:
@@ -258,6 +258,10 @@ def _newton_update(weights_0, X, XX_T, target, k, method_, maxiter=int(1024),
 
         logging.debug("{}: after {} iterations log-loss = {:.7e}, sum_grad = {:.7e}".format(
             method_, i, L, np.abs(gradient).sum()))
+
+        if np.isnan(L):
+            logging.error("{}: log-loss is NaN".format(method_))
+            break
 
         if i >= 5:
             if (raw_np.float(raw_np.min(raw_np.diff(L_list[-5:]))) > -ftol) & (raw_np.float(raw_np.sum(raw_np.diff(L_list[-5:])) > 0) == 0):
