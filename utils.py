@@ -12,5 +12,5 @@ def clip(X):
     return np.clip(X, eps, 1-eps)
 
 def clip_jax(X):
-    eps = jax_np.finfo(X.dtype).tiny
+    eps = jax_np.finfo(X.dtype).eps
     return jax_np.clip(X, eps, 1-eps)

@@ -107,19 +107,19 @@ class MultinomialRegression(BaseEstimator, RegressorMixin):
 
         if self.weights_0_ is None:
 
-            if self.method_ is 'Full':
+            if self.method_ == 'Full':
                 if initializer == 'identity':
                     weights_0 = _get_identity_weights(k, self.method_)
                 else:
                     weights_0 = np.zeros(k * (k + 1))
 
-            if self.method_ is 'Diag':
+            if self.method_ == 'Diag':
                 if initializer == 'identity':
                     weights_0 = _get_identity_weights(k, self.method_)
                 else:
                     weights_0 = np.zeros(2*k)
 
-            elif self.method_ is 'FixDiag':
+            elif self.method_ == 'FixDiag':
                 if initializer == 'identity':
                     weights_0 = _get_identity_weights(k, self.method_)
                 else:
@@ -137,24 +137,25 @@ class MultinomialRegression(BaseEstimator, RegressorMixin):
 
 
 def _objective(params, *args):
-        (X, _, y, k, method, reg_lambda, reg_mu, initializer) = args
-        weights = _get_weights(params, k, method)
-        outputs = clip_jax(_calculate_outputs(weights, X))
-        loss = np.mean(-np.log(np.sum(y * outputs, axis=1)))
+    (X, _, y, k, method, reg_lambda, reg_mu, initializer) = args
+    weights = _get_weights(params, k, method)
+    #outputs = _calculate_outputs(weights, X)
+    outputs = clip_jax(_calculate_outputs(weights, X))
+    loss = np.mean(-np.log(np.sum(y * outputs, axis=1)))
 
-        if reg_mu is None:
-            if initializer is 'identity':
-                reg = np.hstack([np.eye(k), np.zeros((k, 1))])
-                # reg[:, :-1][np.diag_indices(k)] = 1.0
-                loss = loss + reg_lambda * np.sum((weights - reg) ** 2)
-            else:
-                loss = loss + reg_lambda * np.sum(weights ** 2)
+    if reg_mu is None:
+        if initializer == 'identity':
+            reg = np.hstack([np.eye(k), np.zeros((k, 1))])
+            # reg[:, :-1][np.diag_indices(k)] = 1.0
+            loss = loss + reg_lambda * np.sum((weights - reg) ** 2)
         else:
-            weights_hat = weights - np.hstack([weights[:, :-1] * np.eye(k), np.zeros((k, 1))])
-            loss = loss + reg_lambda * np.sum(weights_hat[:, :-1] ** 2) + \
-                reg_mu * np.sum(weights_hat[:, -1] ** 2)
+            loss = loss + reg_lambda * np.sum(weights ** 2)
+    else:
+        weights_hat = weights - np.hstack([weights[:, :-1] * np.eye(k), np.zeros((k, 1))])
+        loss = loss + reg_lambda * np.sum(weights_hat[:, :-1] ** 2) + \
+            reg_mu * np.sum(weights_hat[:, -1] ** 2)
 
-        return loss
+    return loss
 
 
 _gradient = jax.grad(_objective, argnums=0)
@@ -190,15 +191,15 @@ def _get_identity_weights(n_classes, method):
 
     weights = None
 
-    if method is 'Full':
+    if method == 'Full':
         weights = np.zeros((n_classes, n_classes + 1)) + np.hstack([np.eye(n_classes), np.zeros((n_classes, 1))])
         # weights[:, :-1][np.diag_indices(n_classes)] = 1.0
         weights = weights.ravel()
 
-    elif method is 'Diag':
+    elif method == 'Diag':
         weights = np.ones(n_classes * 2)
 
-    elif method is 'FixDiag':
+    elif method == 'FixDiag':
         weights = np.ones(1)
 
     elif method is None:
@@ -242,7 +243,7 @@ def _newton_update(weights_0, X, XX_T, target, k, method_, maxiter=int(1024),
         # FIXME hessian is ocasionally NaN
         hessian = _hessian(weights, X, XX_T, target, k, method_, reg_lambda, reg_mu, initializer)
 
-        if method_ is 'FixDiag':
+        if method_ == 'FixDiag':
             updates = gradient / hessian
         else:
             updates = np.matmul(scipy.linalg.pinv2(hessian), gradient)
