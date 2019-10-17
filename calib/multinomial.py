@@ -172,14 +172,16 @@ def _get_weights(params, k, method):
             # weights = np.zeros([k, k+1])
             # weights[:-1, :] = params.reshape(-1, k + 1)
 
-        elif method is 'Diag':
+        elif method == 'Diag':
             weights = np.hstack([np.diag(params[:k]), params[k:].reshape(-1, 1)])
             # weights[:, :-1][np.diag_indices(k)] = params[:]
 
-        elif method is 'FixDiag':
+        elif method == 'FixDiag':
             weights = np.hstack([np.eye(k) * params[0], np.zeros((k, 1))])
-            # weights[np.diag_indices(k - 1)] = params[0] 
+            # weights[np.dgag_indices(k - 1)] = params[0] 
             # weights[np.diag_indices(k)] = params[0]
+        else:
+            raise(ValueError("Unknown calibration method {}".format(method)))
 
         return weights
 
@@ -237,6 +239,7 @@ def _newton_update(weights_0, X, XX_T, target, k, method_, maxiter=int(1024),
         if np.abs(gradient).sum() < gtol:
             break
 
+        # FIXME hessian is ocasionally NaN
         hessian = _hessian(weights, X, XX_T, target, k, method_, reg_lambda, reg_mu, initializer)
 
         if method_ is 'FixDiag':
@@ -248,6 +251,9 @@ def _newton_update(weights_0, X, XX_T, target, k, method_, maxiter=int(1024),
                                     np.logspace(-2, -32, 31))):
 
             tmp_w = weights - (updates * step_size).ravel()
+
+            if np.any(np.isnan(tmp_w)):
+                from IPython import embed; embed()
 
             L = _objective(tmp_w, X, XX_T, target, k, method_, reg_lambda, reg_mu, initializer)
 
