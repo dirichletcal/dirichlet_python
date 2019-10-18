@@ -249,7 +249,7 @@ def _newton_update(weights_0, X, XX_T, target, k, method_, maxiter=int(1024),
             try:
                 inverse = scipy.linalg.pinv2(hessian)
             except raw_np.linalg.LinAlgError as err:
-                if 'Singular matrix' in str(err):
+                if 'SVD did not converge' in str(err):
                     logging.debug("{}: Singular matrix".format( method_))
                     inverse = scipy.linalg.pinv(hessian)
                 else:
