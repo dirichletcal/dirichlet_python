@@ -246,7 +246,15 @@ def _newton_update(weights_0, X, XX_T, target, k, method_, maxiter=int(1024),
         if method_ == 'FixDiag':
             updates = gradient / hessian
         else:
-            updates = np.matmul(scipy.linalg.pinv2(hessian), gradient)
+            try:
+                inverse = scipy.linalg.pinv2(hessian)
+            except raw_np.linalg.LinAlgError as err:
+                if 'Singular matrix' in str(err):
+                    logging.debug("{}: Singular matrix".format( method_))
+                    inverse = scipy.linalg.pinv(hessian)
+                else:
+                    raise
+            updates = np.matmul(inverse, gradient)
 
         for step_size in np.hstack((np.linspace(1, 0.1, 10),
                                     np.logspace(-2, -32, 31))):
