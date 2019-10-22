@@ -81,12 +81,10 @@ class TemperatureScaling(BaseEstimator, RegressorMixin):
         return self.calibrator_.intercept_
 
     def predict_proba(self, S):
-        S = np.log(clip_for_log(S))
         k = np.shape(S)[1]
 
         if self.logit_input == False:
-            _S = np.copy(S)
-            _S = np.log(clip_for_log(_S))
+            _S = np.log(clip_for_log(np.copy(S)))
             if self.logit_constant is None:
                 _S = _S - _S[:, -1].reshape(-1, 1).repeat(k, axis=1)
             else:
@@ -97,12 +95,10 @@ class TemperatureScaling(BaseEstimator, RegressorMixin):
         return np.asarray(self.calibrator_.predict_proba(_S))
 
     def predict(self, S):
-        S = np.log(clip_for_log(S))
         k = np.shape(S)[1]
 
         if self.logit_input == False:
-            _S = np.copy(S)
-            _S = np.log(clip_for_log(_S))
+            _S = np.log(clip_for_log(np.copy(S)))
             if self.logit_constant is None:
                 _S = _S - _S[:, -1].reshape(-1, 1).repeat(k, axis=1)
             else:
