@@ -15,6 +15,9 @@ import scipy.linalg
 
 from ..utils import clip, clip_jax
 
+from jax.config import config
+config.update("jax_enable_x64", True)
+
 class MultinomialRegression(BaseEstimator, RegressorMixin):
     def __init__(self, weights_0=None, method=None, initializer='identity', 
                  reg_lambda=0.0, reg_mu=None):
