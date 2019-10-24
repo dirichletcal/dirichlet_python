@@ -17,8 +17,14 @@ class DirichletCalibrator(BaseEstimator, RegressorMixin):
 
         self.matrix_type = matrix_type
         self.l2 = l2
-        self.l2_grid = l2
-        self.comp_l2 = comp_l2
+        if isinstance(l2, list):
+            self.l2_grid = l2
+        else:
+            self.l2_grid = [l2]
+        if isinstance(comp_l2, list):
+            self.comp_l2 = comp_l2
+        else:
+            self.comp_l2 = [comp_l2]
         self.initializer = initializer
 
     def fit(self, X, y, X_val=None, y_val=None, **kwargs):
@@ -30,8 +36,8 @@ class DirichletCalibrator(BaseEstimator, RegressorMixin):
             self.calibrator_ = FixedDiagonalDirichletCalibrator(l2=self.l2,
                                                        initializer=self.initializer)
         elif self.matrix_type == 'full':
-            self.calibrator_ = FullDirichletCalibrator(l2=self.l2,
-                                                       comp_l2=self.comp_l2,
+            self.calibrator_ = FullDirichletCalibrator(reg_lambda_list=self.l2_grid,
+                                                       reg_mu_list=self.comp_l2,
                                                        initializer=self.initializer)
         elif self.matrix_type == 'full_gen':
             self.calibrator_ = GenerativeDirichletCalibrator()
