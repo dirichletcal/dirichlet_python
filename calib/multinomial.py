@@ -200,7 +200,7 @@ def _get_identity_weights(n_classes, method):
         weights = weights.ravel()
 
     elif method == 'Diag':
-        weights = np.ones(n_classes * 2)
+        weights = np.hstack([np.ones(n_classes), np.zeros(n_classes)])
 
     elif method == 'FixDiag':
         weights = np.ones(1)
