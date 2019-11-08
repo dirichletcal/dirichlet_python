@@ -32,18 +32,34 @@ class TestMultinomial(unittest.TestCase):
         acc = accuracy_score(y, predictions)
         self.assertGreater(acc, 0.9, "accuracy must be superior to 9 percent")
 
-    def test_get_weights(self):
+    def test_get_weights_no_ref_row(self):
         k = 3
-        params = np.arange((k-1)*(k+1)) + 1
-        full_matrix = _get_weights(params, k=k, method='Full')
-        expected = np.array([[1, 2, 3, 4], [5, 6, 7, 8], [0, 0, 0, 0]], 'float')
+        params = np.arange(k*(k+1)) + 1
+        full_matrix = _get_weights(params, k=k, ref_row=False, method='Full')
+        expected = params.reshape(k, k+1)
         np.testing.assert_array_equal(full_matrix, expected)
 
         k = 3
         params = np.arange(k) + 1
-        full_matrix = _get_weights(params, k=k, method='FixDiag')
-        expected = np.array([[1, 0, 0], [0, 1, 0], [0, 0, 0]], 'float')
+        full_matrix = _get_weights(params, k=k, ref_row=False, method='FixDiag')
+        expected = np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0]], 'float')
         np.testing.assert_array_equal(full_matrix, expected)
+
+    def test_get_weights_ref_row(self):
+        k = 5
+        params = np.arange(k*(k+1)) + 1
+        full_matrix = _get_weights(params, k=k, ref_row=True, method='Full')
+        expected = params.reshape(k, k+1)
+        expected -= expected[-1, :]
+        np.testing.assert_array_equal(full_matrix, expected)
+
+        k = 3
+        params = np.arange(k) + 1
+        full_matrix = _get_weights(params, k=k, ref_row=True, method='FixDiag')
+        expected = np.hstack((np.eye(k), np.zeros((k, 1))))
+        expected -= expected[-1, :]
+        np.testing.assert_array_equal(full_matrix, expected)
+
 
 
 def main():
