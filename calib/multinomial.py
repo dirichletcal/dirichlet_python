@@ -269,13 +269,9 @@ def _newton_update(weights_0, X, XX_T, target, k, method_, maxiter=int(1024),
         else:
             try:
                 inverse = scipy.linalg.pinv2(hessian)
+                updates = np.matmul(inverse, gradient)
             except raw_np.linalg.LinAlgError as err:
-                if 'SVD did not converge' in str(err):
-                    logging.debug("{}: Singular matrix".format( method_))
-                    inverse = scipy.linalg.pinv(hessian)
-                else:
-                    raise
-            updates = np.matmul(inverse, gradient)
+                updates = gradient
 
         for step_size in np.hstack((np.linspace(1, 0.1, 10),
                                     np.logspace(-2, -32, 31))):
