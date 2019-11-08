@@ -283,7 +283,7 @@ def _newton_update(weights_0, X, XX_T, target, k, method_, maxiter=int(1024),
             tmp_w = weights - (updates * step_size).ravel()
 
             if np.any(np.isnan(tmp_w)):
-                from IPython import embed; embed()
+                logging.debug("{}: There are NaNs in tmp_w".format( method_))
 
             L = _objective(tmp_w, X, XX_T, target, k, method_, 
                            reg_lambda, reg_mu, ref_row, initializer, reg_format)
