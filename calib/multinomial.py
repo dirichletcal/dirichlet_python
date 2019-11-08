@@ -206,10 +206,9 @@ def _get_identity_weights(n_classes, ref_row, method):
 
     raw_weights = None
 
-    if method == 'Full':
+    if (method is None) or (method == 'Full'):
         raw_weights = np.zeros((n_classes, n_classes + 1)) + \
-        np.hstack([np.eye(n_classes), np.zeros((n_classes, 1))])
-        # weights[:, :-1][np.diag_indices(n_classes)] = 1.0
+                      np.hstack([np.eye(n_classes), np.zeros((n_classes, 1))])
         raw_weights = raw_weights.ravel()
 
     elif method == 'Diag':
@@ -217,11 +216,6 @@ def _get_identity_weights(n_classes, ref_row, method):
 
     elif method == 'FixDiag':
         raw_weights = np.ones(1)
-
-    elif method is None:
-        raw_weights = np.zeros((n_classes, n_classes + 1))
-        raw_weights[:, :-1][np.diag_indices(n_classes)] = 1.0
-        raw_weights = raw_weights.ravel()
 
     if ref_row:
         weights = raw_weights.reshape([n_classes, n_classes+1]) - \
