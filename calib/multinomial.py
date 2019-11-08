@@ -19,8 +19,8 @@ from jax.config import config
 config.update("jax_enable_x64", True)
 
 class MultinomialRegression(BaseEstimator, RegressorMixin):
-    def __init__(self, weights_0=None, method=None, initializer='identity', 
-                 reg_lambda=0.0, reg_mu=None):
+    def __init__(self, weights_0=None, method=None, initializer='identity', reg_format=None, 
+                 reg_lambda=0.0, reg_mu=None, reg_norm=False, ref_row=True):
         if method not in [None, 'Full', 'Diag', 'FixDiag']:
             raise(ValueError('method {} not avaliable'.format(method)))
 
@@ -28,8 +28,11 @@ class MultinomialRegression(BaseEstimator, RegressorMixin):
         self.weights_0_ = weights_0
         self.method_ = method
         self.initializer = initializer
+        self.reg_format = reg_format
         self.reg_lambda = reg_lambda
         self.reg_mu = reg_mu  # If number, then ODIR is applied
+        self.reg_norm = reg_norm
+        self.ref_row = ref_row
         self.classes = None
 
     @property
@@ -60,12 +63,12 @@ class MultinomialRegression(BaseEstimator, RegressorMixin):
 
         k = len(self.classes)
 
-        if self.reg_mu is None:
-            self.reg_lambda = self.reg_lambda / (k * (k + 1))
-        else:
-            self.reg_lambda = self.reg_lambda / (k * (k - 1))
-            self.reg_mu = self.reg_mu / k
-
+        if self.reg_norm:
+            if self.reg_mu is None:
+                self.reg_lambda = self.reg_lambda / (k * (k + 1))
+            else:
+                self.reg_lambda = self.reg_lambda / (k * (k - 1))
+                self.reg_mu = self.reg_mu / k
 
         target = label_binarize(y, self.classes)
 
@@ -82,22 +85,27 @@ class MultinomialRegression(BaseEstimator, RegressorMixin):
 
         if k <= 36:
             weights = _newton_update(self.weights_0_, X_, XXT, target, k,
-                                     self.method_, reg_lambda=self.reg_lambda, reg_mu=self.reg_mu, initializer=self.initializer)
+                                     self.method_, reg_lambda=self.reg_lambda, 
+                                     reg_mu=self.reg_mu, ref_row=self.ref_row, 
+                                     initializer=self.initializer,
+                                     reg_format=self.reg_format)
         else:
             res = scipy.optimize.fmin_l_bfgs_b(func=_objective, fprime=_gradient,
                                                x0=self.weights_0_,
                                                args=(X_, XXT, target, k,
-                                                     self.method_, self.reg_lambda, self.reg_mu, self.initializer),
+                                                     self.method_, self.reg_lambda, self.reg_mu, 
+                                                     self.ref_row, self.initializer, 
+                                                     self.reg_format),
                                                maxls=128,
                                                factr=1.0)
             weights = res[0]
 
-        self.weights_ = _get_weights(weights, k, self.method_)
+        self.weights_ = _get_weights(weights, k, self.ref_row, self.method_)
 
         return self
 
 
-    def _get_initial_weights(self, initializer='identity'):
+    def _get_initial_weights(self, ref_row, initializer='identity'):
         ''' Returns an array containing only the weights of the full weight
         matrix.
 
@@ -112,25 +120,25 @@ class MultinomialRegression(BaseEstimator, RegressorMixin):
 
             if self.method_ == 'Full':
                 if initializer == 'identity':
-                    weights_0 = _get_identity_weights(k, self.method_)
+                    weights_0 = _get_identity_weights(k, ref_row, self.method_)
                 else:
                     weights_0 = np.zeros(k * (k + 1))
 
             if self.method_ == 'Diag':
                 if initializer == 'identity':
-                    weights_0 = _get_identity_weights(k, self.method_)
+                    weights_0 = _get_identity_weights(k, ref_row, self.method_)
                 else:
                     weights_0 = np.zeros(2*k)
 
             elif self.method_ == 'FixDiag':
                 if initializer == 'identity':
-                    weights_0 = _get_identity_weights(k, self.method_)
+                    weights_0 = _get_identity_weights(k, ref_row, self.method_)
                 else:
                     weights_0 = np.zeros(1)
 
             if self.method_ is None:
                 if initializer == 'identity':
-                    weights_0 = _get_identity_weights(k, self.method_)
+                    weights_0 = _get_identity_weights(k, ref_row, self.method_)
                 else:
                     weights_0 = np.zeros(k * (k + 1))
         else:
@@ -140,19 +148,18 @@ class MultinomialRegression(BaseEstimator, RegressorMixin):
 
 
 def _objective(params, *args):
-    (X, _, y, k, method, reg_lambda, reg_mu, initializer) = args
-    weights = _get_weights(params, k, method)
+    (X, _, y, k, method, reg_lambda, reg_mu, ref_row, _, reg_format) = args
+    weights = _get_weights(params, k, ref_row, method)
     #outputs = _calculate_outputs(weights, X)
     outputs = clip_jax(_calculate_outputs(weights, X))
     loss = np.mean(-np.log(np.sum(y * outputs, axis=1)))
 
     if reg_mu is None:
-        if initializer == 'identity':
+        if reg_format == 'identity':
             reg = np.hstack([np.eye(k), np.zeros((k, 1))])
-            # reg[:, :-1][np.diag_indices(k)] = 1.0
-            loss = loss + reg_lambda * np.sum((weights - reg) ** 2)
         else:
-            loss = loss + reg_lambda * np.sum(weights ** 2)
+            reg = np.zeros((k, k+1))
+        loss = loss + reg_lambda * np.sum((weights - reg)**2)
     else:
         weights_hat = weights - np.hstack([weights[:, :-1] * np.eye(k), np.zeros((k, 1))])
         loss = loss + reg_lambda * np.sum(weights_hat[:, :-1] ** 2) + \
@@ -167,50 +174,63 @@ _gradient = jax.grad(_objective, argnums=0)
 _hessian = jax.hessian(_objective, argnums=0)
 
 
-def _get_weights(params, k, method):
+def _get_weights(params, k, ref_row, method):
         ''' Reshapes the given params (weights) into the full matrix including 0
         '''
 
         if method in ['Full', None]:
-            weights = params.reshape(-1, k+1)
+            raw_weights = params.reshape(-1, k+1)
             # weights = np.zeros([k, k+1])
             # weights[:-1, :] = params.reshape(-1, k + 1)
 
         elif method == 'Diag':
-            weights = np.hstack([np.diag(params[:k]), params[k:].reshape(-1, 1)])
+            raw_weights = np.hstack([np.diag(params[:k]), params[k:].reshape(-1, 1)])
             # weights[:, :-1][np.diag_indices(k)] = params[:]
 
         elif method == 'FixDiag':
-            weights = np.hstack([np.eye(k) * params[0], np.zeros((k, 1))])
+            raw_weights = np.hstack([np.eye(k) * params[0], np.zeros((k, 1))])
             # weights[np.dgag_indices(k - 1)] = params[0] 
             # weights[np.diag_indices(k)] = params[0]
         else:
             raise(ValueError("Unknown calibration method {}".format(method)))
 
+        if ref_row:
+            weights = raw_weights - np.repeat(raw_weights[-1, :].reshape(1, -1), k, axis=0)
+        else:
+            weights = raw_weights
+
         return weights
 
 
-def _get_identity_weights(n_classes, method):
+def _get_identity_weights(n_classes, ref_row, method):
 
-    weights = None
+    raw_weights = None
 
     if method == 'Full':
-        weights = np.zeros((n_classes, n_classes + 1)) + np.hstack([np.eye(n_classes), np.zeros((n_classes, 1))])
+        raw_weights = np.zeros((n_classes, n_classes + 1)) + \
+        np.hstack([np.eye(n_classes), np.zeros((n_classes, 1))])
         # weights[:, :-1][np.diag_indices(n_classes)] = 1.0
-        weights = weights.ravel()
+        raw_weights = raw_weights.ravel()
 
     elif method == 'Diag':
-        weights = np.hstack([np.ones(n_classes), np.zeros(n_classes)])
+        raw_weights = np.hstack([np.ones(n_classes), np.zeros(n_classes)])
 
     elif method == 'FixDiag':
-        weights = np.ones(1)
+        raw_weights = np.ones(1)
 
     elif method is None:
-        weights = np.zeros((n_classes, n_classes + 1))
-        weights[:, :-1][np.diag_indices(n_classes)] = 1.0
-        weights = weights.ravel()
+        raw_weights = np.zeros((n_classes, n_classes + 1))
+        raw_weights[:, :-1][np.diag_indices(n_classes)] = 1.0
+        raw_weights = raw_weights.ravel()
 
-    return weights
+    if ref_row:
+        weights = raw_weights.reshape([n_classes, n_classes+1]) - \
+            np.repeat(raw_weights.reshape([n_classes, 
+            n_classes+1])[n_classes, :].reshape((1, -1)), n_classes, axis=0)
+    else:
+        weights = raw_weights
+
+    return weights.ravel()
 
 
 def _calculate_outputs(weights, X):
@@ -226,9 +246,11 @@ def _softmax(X):
 
 
 def _newton_update(weights_0, X, XX_T, target, k, method_, maxiter=int(1024),
-                   ftol=1e-12, gtol=1e-8, reg_lambda=0.0, reg_mu=None, initializer=None):
+                   ftol=1e-12, gtol=1e-8, reg_lambda=0.0, reg_mu=None, ref_row=True, 
+                   initializer=None, reg_format=None):
 
-    L_list = [raw_np.float(_objective(weights_0, X, XX_T, target, k, method_, reg_lambda, reg_mu, initializer))]
+    L_list = [raw_np.float(_objective(weights_0, X, XX_T, target, k, method_, 
+                                      reg_lambda, reg_mu, ref_row, initializer, reg_format))]
 
     weights = weights_0.copy()
 
@@ -238,13 +260,15 @@ def _newton_update(weights_0, X, XX_T, target, k, method_, maxiter=int(1024),
 
     for i in range(0, maxiter):
 
-        gradient = _gradient(weights, X, XX_T, target, k, method_, reg_lambda, reg_mu, initializer)
+        gradient = _gradient(weights, X, XX_T, target, k, method_, 
+                             reg_lambda, reg_mu, ref_row, initializer, reg_format)
 
         if np.abs(gradient).sum() < gtol:
             break
 
         # FIXME hessian is ocasionally NaN
-        hessian = _hessian(weights, X, XX_T, target, k, method_, reg_lambda, reg_mu, initializer)
+        hessian = _hessian(weights, X, XX_T, target, k, method_, 
+                           reg_lambda, reg_mu, ref_row, initializer, reg_format)
 
         if method_ == 'FixDiag':
             updates = gradient / hessian
@@ -267,7 +291,8 @@ def _newton_update(weights_0, X, XX_T, target, k, method_, maxiter=int(1024),
             if np.any(np.isnan(tmp_w)):
                 from IPython import embed; embed()
 
-            L = _objective(tmp_w, X, XX_T, target, k, method_, reg_lambda, reg_mu, initializer)
+            L = _objective(tmp_w, X, XX_T, target, k, method_, 
+                           reg_lambda, reg_mu, ref_row, initializer, reg_format)
 
             if (L - L_list[-1]) < 0:
                 break
@@ -282,9 +307,11 @@ def _newton_update(weights_0, X, XX_T, target, k, method_, maxiter=int(1024),
             break
 
         if i >= 5:
-            if (raw_np.float(raw_np.min(raw_np.diff(L_list[-5:]))) > -ftol) & (raw_np.float(raw_np.sum(raw_np.diff(L_list[-5:])) > 0) == 0):
+            if (raw_np.float(raw_np.min(raw_np.diff(L_list[-5:]))) > -ftol) & \
+                (raw_np.float(raw_np.sum(raw_np.diff(L_list[-5:])) > 0) == 0):
                 weights = tmp_w.copy()
-                logging.debug('{}: Terminate as there is not enough changes on loss.'.format(method_))
+                logging.debug('{}: Terminate as there is not enough changes on loss.'.format(
+                    method_))
                 break
 
         if (L_list[-1] - L_list[-2]) > 0:
@@ -294,9 +321,12 @@ def _newton_update(weights_0, X, XX_T, target, k, method_, maxiter=int(1024),
         else:
             weights = tmp_w.copy()
 
-    L = _objective(weights, X, XX_T, target, k, method_, reg_lambda, reg_mu, initializer)
+    L = _objective(weights, X, XX_T, target, k, method_, 
+                   reg_lambda, reg_mu, ref_row, initializer, reg_format)
+    
     logging.debug("{}: after {} iterations final log-loss = {:.7e}, sum_grad = {:.7e}".format(
         method_, i, L, np.abs(gradient).sum()))
+    
     #logging.debug("weights = \n{}".format(weights))
 
     return weights
