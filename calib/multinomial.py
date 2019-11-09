@@ -217,14 +217,7 @@ def _get_identity_weights(n_classes, ref_row, method):
     elif method == 'FixDiag':
         raw_weights = np.ones(1)
 
-    if ref_row:
-        weights = raw_weights.reshape([n_classes, n_classes+1]) - \
-            np.repeat(raw_weights.reshape([n_classes, 
-            n_classes+1])[n_classes, :].reshape((1, -1)), n_classes, axis=0)
-    else:
-        weights = raw_weights
-
-    return weights.ravel()
+    return raw_weights.ravel()
 
 
 def _calculate_outputs(weights, X):
