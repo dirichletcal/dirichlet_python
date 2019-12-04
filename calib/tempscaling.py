@@ -12,7 +12,8 @@ from .multinomial import _get_identity_weights
 class TemperatureScaling(BaseEstimator, RegressorMixin):
     def __init__(self, reg_lambda_list=[0.0], reg_mu_list=[None], 
                  logit_input=False, logit_constant=None, 
-                 weights_init=None, initializer='identity'):
+                 weights_init=None, initializer='identity',
+                 ref_row=True):
         self.calibrator_ = None
         self.weights_ = weights_init
         self.logit_input=logit_input
@@ -22,6 +23,7 @@ class TemperatureScaling(BaseEstimator, RegressorMixin):
         self.reg_lambda_list = reg_lambda_list
         self.reg_mu_list = reg_mu_list
         self.initializer = initializer
+        self.ref_row = ref_row
 
     def fit(self, X, y, X_val=None, y_val=None, *args, **kwargs):
 
@@ -50,7 +52,8 @@ class TemperatureScaling(BaseEstimator, RegressorMixin):
             for j in range(0, len(self.reg_mu_list)):
                 tmp_cal = MultinomialRegression(method='FixDiag', 
                                                 reg_lambda=self.reg_lambda_list[i],
-                                                reg_mu=self.reg_mu_list[j])
+                                                reg_mu=self.reg_mu_list[j],
+                                                ref_row=self.ref_row)
                 tmp_cal.fit(_X, y, *args, **kwargs)
                 tmp_loss = log_loss(y_val, tmp_cal.predict_proba(_X_val))
                 

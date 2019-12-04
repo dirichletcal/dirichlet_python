@@ -11,7 +11,8 @@ from .multinomial import _get_identity_weights
 
 class FullDirichletCalibrator(BaseEstimator, RegressorMixin):
     def __init__(self, l2=0.0, reg_lambda_list=[0.0], reg_mu_list=[None],
-                 weights_init=None, initializer='identity', reg_norm=False):
+                 weights_init=None, initializer='identity', reg_norm=False,
+                 ref_row=True):
     
         """
         Params:
@@ -28,6 +29,7 @@ class FullDirichletCalibrator(BaseEstimator, RegressorMixin):
         self.reg_mu_list = reg_mu_list  # Complementary L2 regularization. (Off-diagonal regularization)
         self.initializer = initializer
         self.reg_norm = reg_norm
+        self.ref_row = ref_row
         
     def fit(self, X, y, X_val=None, y_val=None, *args, **kwargs):
 
@@ -47,7 +49,8 @@ class FullDirichletCalibrator(BaseEstimator, RegressorMixin):
                 tmp_cal = MultinomialRegression(method='Full', 
                                                 reg_lambda=self.reg_lambda_list[i],
                                                 reg_mu=self.reg_mu_list[j],
-                                                reg_norm=self.reg_norm)
+                                                reg_norm=self.reg_norm,
+                                                ref_row=self.ref_row)
                 tmp_cal.fit(_X, y, *args, **kwargs)
                 tmp_loss = log_loss(y_val, tmp_cal.predict_proba(_X_val))
                 
