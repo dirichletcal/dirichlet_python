@@ -30,7 +30,7 @@ python -m unittest discover dirichletcal
 
 # Cite
 
-If you use this code please cite the following paper
+If you use this code in a publication please cite the following paper
 
 
 ```
