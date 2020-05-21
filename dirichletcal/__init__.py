@@ -1,5 +1,4 @@
 from .version import __version__
-import logging
 import numpy as np
 
 from sklearn.base import BaseEstimator, RegressorMixin
@@ -13,7 +12,8 @@ from .calib.gendirichlet import GenerativeDirichletCalibrator
 class DirichletCalibrator(BaseEstimator, RegressorMixin):
     def __init__(self, matrix_type='full', l2=0.0, comp_l2=False,
                  initializer='identity'):
-        if matrix_type not in ['full', 'full_gen', 'diagonal', 'fixed_diagonal']:
+        if matrix_type not in ['full', 'full_gen', 'diagonal',
+                               'fixed_diagonal']:
             raise(ValueError)
 
         self.matrix_type = matrix_type
@@ -31,15 +31,15 @@ class DirichletCalibrator(BaseEstimator, RegressorMixin):
     def fit(self, X, y, X_val=None, y_val=None, **kwargs):
 
         if self.matrix_type == 'diagonal':
-            self.calibrator_ = DiagonalDirichletCalibrator(l2=self.l2,
-                                                       initializer=self.initializer)
+            self.calibrator_ = DiagonalDirichletCalibrator(
+                l2=self.l2, initializer=self.initializer)
         elif self.matrix_type == 'fixed_diagonal':
-            self.calibrator_ = FixedDiagonalDirichletCalibrator(l2=self.l2,
-                                                       initializer=self.initializer)
+            self.calibrator_ = FixedDiagonalDirichletCalibrator(
+                l2=self.l2, initializer=self.initializer)
         elif self.matrix_type == 'full':
-            self.calibrator_ = FullDirichletCalibrator(reg_lambda_list=self.l2_grid,
-                                                       reg_mu_list=self.comp_l2,
-                                                       initializer=self.initializer)
+            self.calibrator_ = FullDirichletCalibrator(
+                reg_lambda_list=self.l2_grid, reg_mu_list=self.comp_l2,
+                initializer=self.initializer)
         elif self.matrix_type == 'full_gen':
             self.calibrator_ = GenerativeDirichletCalibrator()
         else:
@@ -71,19 +71,20 @@ class DirichletCalibrator(BaseEstimator, RegressorMixin):
     @property
     def cannonical_weights(self):
         b = self.weights_[:, -1]
-        W = self.weights_[:,:-1]
-        col_min = np.min(W,axis=0)
+        W = self.weights_[:, :-1]
+        col_min = np.min(W, axis=0)
         A = W - col_min
-        softmax = lambda z:np.divide(np.exp(z), np.sum(np.exp(z)))
+        def softmax(z):
+            return np.divide(np.exp(z), np.sum(np.exp(z)))
         c = softmax(np.matmul(W, np.log(np.ones(len(b))/len(b))) + b)
-        return np.hstack((A, c.reshape(-1,1)))
+        return np.hstack((A, c.reshape(-1, 1)))
 
     def predict_proba(self, S):
 
         _S = np.copy(S)
         if len(S.shape) == 1:
             _S = np.vstack(((1-_S), _S)).T
-            return self.calibrator_.predict_proba(_S)[:,1]
+            return self.calibrator_.predict_proba(_S)[:, 1]
 
         return self.calibrator_.predict_proba(_S)
 
@@ -92,6 +93,6 @@ class DirichletCalibrator(BaseEstimator, RegressorMixin):
         _S = np.copy(S)
         if len(S.shape) == 1:
             _S = np.vstack(((1-_S), _S)).T
-            return self.calibrator_.predict(_S)[:,1]
+            return self.calibrator_.predict(_S)[:, 1]
 
         return self.calibrator_.predict(_S)
