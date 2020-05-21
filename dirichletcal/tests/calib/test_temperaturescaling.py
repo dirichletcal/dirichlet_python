@@ -1,6 +1,6 @@
 import unittest
 import numpy as np
-from dirichlet.calib.tempscaling import TemperatureScaling
+from dirichletcal.calib.tempscaling import TemperatureScaling
 from . import get_simple_binary_example
 from . import get_extreme_binary_example
 from . import get_simple_ternary_example

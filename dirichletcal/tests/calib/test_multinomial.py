@@ -1,7 +1,7 @@
 import unittest
 import numpy as np
-from dirichlet.calib.multinomial import MultinomialRegression
-from dirichlet.calib.multinomial import _get_weights
+from dirichletcal.calib.multinomial import MultinomialRegression
+from dirichletcal.calib.multinomial import _get_weights
 from . import get_simple_binary_example
 from . import get_simple_ternary_example
 

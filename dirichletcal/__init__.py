@@ -3,10 +3,10 @@ import numpy as np
 
 from sklearn.base import BaseEstimator, RegressorMixin
 
-from dirichlet.calib.fulldirichlet import FullDirichletCalibrator
-from dirichlet.calib.diagdirichlet import DiagonalDirichletCalibrator
-from dirichlet.calib.fixeddirichlet import FixedDiagonalDirichletCalibrator
-from dirichlet.calib.gendirichlet import GenerativeDirichletCalibrator
+from .calib.fulldirichlet import FullDirichletCalibrator
+from .calib.diagdirichlet import DiagonalDirichletCalibrator
+from .calib.fixeddirichlet import FixedDiagonalDirichletCalibrator
+from .calib.gendirichlet import GenerativeDirichletCalibrator
 
 
 class DirichletCalibrator(BaseEstimator, RegressorMixin):

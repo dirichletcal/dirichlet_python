@@ -1,6 +1,6 @@
 import unittest
 import numpy as np
-from dirichlet.calib.diagdirichlet import DiagonalDirichletCalibrator
+from dirichletcal.calib.diagdirichlet import DiagonalDirichletCalibrator
 from . import get_simple_binary_example
 from . import get_simple_ternary_example
 
