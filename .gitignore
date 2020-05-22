@@ -1,4 +1,10 @@
 *.pyc
 *.sw*
 .vscode
-venv
+# Build folders
+venv/
+build/
+dirichletcal.egg-info/
+dist/
+venvtest/
+
