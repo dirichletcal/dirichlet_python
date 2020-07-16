@@ -14,7 +14,7 @@ class DirichletCalibrator(BaseEstimator, RegressorMixin):
                  initializer='identity'):
         if matrix_type not in ['full', 'full_gen', 'diagonal',
                                'fixed_diagonal']:
-            raise(ValueError)
+            raise ValueError
 
         self.matrix_type = matrix_type
         self.l2 = l2
@@ -27,8 +27,9 @@ class DirichletCalibrator(BaseEstimator, RegressorMixin):
         else:
             self.comp_l2 = [comp_l2]
         self.initializer = initializer
+        self.calibrator_ = None
 
-    def fit(self, X, y, X_val=None, y_val=None, **kwargs):
+    def fit(self, x, y, x_val=None, y_val=None, **kwargs):
 
         if self.matrix_type == 'diagonal':
             self.calibrator_ = DiagonalDirichletCalibrator(
@@ -43,56 +44,73 @@ class DirichletCalibrator(BaseEstimator, RegressorMixin):
         elif self.matrix_type == 'full_gen':
             self.calibrator_ = GenerativeDirichletCalibrator()
         else:
-            raise(ValueError)
+            raise ValueError
 
-        _X = np.copy(X)
-        if len(X.shape) == 1:
-            _X = np.vstack(((1-_X), _X)).T
+        _X = np.copy(x)
+        if len(x.shape) == 1:
+            _X = np.vstack(((1 - _X), _X)).T
 
-        _X_val = X_val
-        if X_val is not None:
-            _X_val = np.copy(X_val)
-            if len(X_val.shape) == 1:
-                _X_val = np.vstack(((1-_X_val), _X_val)).T
+        _X_val = x_val
+        if x_val is not None:
+            _X_val = np.copy(x_val)
+            if len(x_val.shape) == 1:
+                _X_val = np.vstack(((1 - _X_val), _X_val)).T
 
         self.calibrator_ = self.calibrator_.fit(_X, y, X_val=_X_val,
                                                 y_val=y_val, **kwargs)
-
-        if hasattr(self.calibrator_, 'l2'):
-            self.l2 = self.calibrator_.l2
-        if hasattr(self.calibrator_, 'weights_'):
-            self.weights_ = self.calibrator_.weights_
-        if hasattr(self.calibrator_, 'coef_'):
-            self.coef_ = self.calibrator_.coef_
-        if hasattr(self.calibrator_, 'intercept_'):
-            self.intercept_ = self.calibrator_.intercept_
         return self
+
+    @property
+    def l2_(self):
+        if (self.calibrator_ is not None) and (hasattr(self.calibrator_, 'l2')):
+            return self.calibrator_.l2
+        return None
+
+    @property
+    def weights_(self):
+        if (self.calibrator_ is not None) and (hasattr(self.calibrator_, 'weights_')):
+            return self.calibrator_.weights_
+        return None
+
+    @property
+    def coef_(self):
+        if (self.calibrator_ is not None) and (hasattr(self.calibrator_, 'coef_')):
+            return self.calibrator_.coef_
+        return None
+
+    @property
+    def intercept_(self):
+        if (self.calibrator_ is not None) and (hasattr(self.calibrator_, 'intercept_')):
+            return self.calibrator_.intercept_
+        return None
 
     @property
     def cannonical_weights(self):
         b = self.weights_[:, -1]
-        W = self.weights_[:, :-1]
-        col_min = np.min(W, axis=0)
-        A = W - col_min
+        w = self.weights_[:, :-1]
+        col_min = np.min(w, axis=0)
+        a = w - col_min
+
         def softmax(z):
             return np.divide(np.exp(z), np.sum(np.exp(z)))
-        c = softmax(np.matmul(W, np.log(np.ones(len(b))/len(b))) + b)
-        return np.hstack((A, c.reshape(-1, 1)))
 
-    def predict_proba(self, S):
+        c = softmax(np.matmul(w, np.log(np.ones(len(b)) / len(b))) + b)
+        return np.hstack((a, c.reshape(-1, 1)))
 
-        _S = np.copy(S)
-        if len(S.shape) == 1:
-            _S = np.vstack(((1-_S), _S)).T
-            return self.calibrator_.predict_proba(_S)[:, 1]
+    def predict_proba(self, s):
 
-        return self.calibrator_.predict_proba(_S)
+        _s = np.copy(s)
+        if len(s.shape) == 1:
+            _s = np.vstack(((1 - _s), _s)).T
+            return self.calibrator_.predict_proba(_s)[:, 1]
 
-    def predict(self, S):
+        return self.calibrator_.predict_proba(_s)
 
-        _S = np.copy(S)
-        if len(S.shape) == 1:
-            _S = np.vstack(((1-_S), _S)).T
-            return self.calibrator_.predict(_S)[:, 1]
+    def predict(self, s):
 
-        return self.calibrator_.predict(_S)
+        _s = np.copy(s)
+        if len(s.shape) == 1:
+            _s = np.vstack(((1 - _s), _s)).T
+            return self.calibrator_.predict(_s)[:, 1]
+
+        return self.calibrator_.predict(_s)
