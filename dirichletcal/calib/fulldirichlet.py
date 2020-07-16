@@ -10,14 +10,12 @@ from .multinomial import _get_identity_weights
 
 
 class FullDirichletCalibrator(BaseEstimator, RegressorMixin):
-    def __init__(self, l2=0.0, reg_lambda=0.0, reg_mu=None,
-                 weights_init=None, initializer='identity', reg_norm=False,
-                 ref_row=True):
+    def __init__(self, reg_lambda=0.0, reg_mu=None, weights_init=None,
+                 initializer='identity', reg_norm=False, ref_row=True):
 
         """
         Params:
             weights_init: (nd.array) weights used for initialisation, if None then idendity matrix used. Shape = (n_classes - 1, n_classes + 1)
-            l2: (float) regularization parameter (lambda)
             comp_l2: (bool) If true, then complementary L2 regularization used (off-diagonal regularization)
         """
 

@@ -19,15 +19,15 @@ config.update("jax_enable_x64", True)
 
 
 class MultinomialRegression(BaseEstimator, RegressorMixin):
-    def __init__(self, weights_0=None, method=None, initializer='identity',
-                 reg_format=None,
-                 reg_lambda=0.0, reg_mu=None, reg_norm=False, ref_row=True):
-        if method not in [None, 'Full', 'Diag', 'FixDiag']:
+    def __init__(self, weights_0=None, method='Full', initializer='identity',
+                 reg_format=None, reg_lambda=0.0, reg_mu=None, reg_norm=False,
+                 ref_row=True):
+        if method not in ['Full', 'Diag', 'FixDiag']:
             raise(ValueError('method {} not avaliable'.format(method)))
 
         self.weights_ = weights_0
         self.weights_0_ = weights_0
-        self.method_ = method
+        self.method = method
         self.initializer = initializer
         self.reg_format = reg_format
         self.reg_lambda = reg_lambda
@@ -80,13 +80,13 @@ class MultinomialRegression(BaseEstimator, RegressorMixin):
 
         XXT = (X_.repeat(m, axis=1) * np.hstack([X_]*m)).reshape((n, m, m))
 
-        logging.debug(self.method_)
+        logging.debug(self.method)
 
         self.weights_0_ = self._get_initial_weights(self.initializer)
 
         if k <= 36:
             weights = _newton_update(self.weights_0_, X_, XXT, target, k,
-                                     self.method_, reg_lambda=self.reg_lambda,
+                                     self.method, reg_lambda=self.reg_lambda,
                                      reg_mu=self.reg_mu, ref_row=self.ref_row,
                                      initializer=self.initializer,
                                      reg_format=self.reg_format)
@@ -94,7 +94,7 @@ class MultinomialRegression(BaseEstimator, RegressorMixin):
             res = scipy.optimize.fmin_l_bfgs_b(func=_objective, fprime=_gradient,
                                                x0=self.weights_0_,
                                                args=(X_, XXT, target, k,
-                                                     self.method_,
+                                                     self.method,
                                                      self.reg_lambda,
                                                      self.reg_mu, self.ref_row,
                                                      self.initializer,
@@ -103,7 +103,7 @@ class MultinomialRegression(BaseEstimator, RegressorMixin):
                                                factr=1.0)
             weights = res[0]
 
-        self.weights_ = _get_weights(weights, k, self.ref_row, self.method_)
+        self.weights_ = _get_weights(weights, k, self.ref_row, self.method)
 
         return self
 
@@ -119,30 +119,15 @@ class MultinomialRegression(BaseEstimator, RegressorMixin):
         k = len(self.classes)
 
         if self.weights_0_ is None:
-
-            if self.method_ == 'Full':
-                if initializer == 'identity':
-                    weights_0 = _get_identity_weights(k, ref_row, self.method_)
-                else:
+            if initializer == 'identity':
+                weights_0 = _get_identity_weights(k, ref_row, self.method)
+            else:
+                if self.method == 'Full':
                     weights_0 = np.zeros(k * (k + 1))
-
-            if self.method_ == 'Diag':
-                if initializer == 'identity':
-                    weights_0 = _get_identity_weights(k, ref_row, self.method_)
-                else:
+                elif self.method == 'Diag':
                     weights_0 = np.zeros(2*k)
-
-            elif self.method_ == 'FixDiag':
-                if initializer == 'identity':
-                    weights_0 = _get_identity_weights(k, ref_row, self.method_)
-                else:
+                elif self.method == 'FixDiag':
                     weights_0 = np.zeros(1)
-
-            if self.method_ is None:
-                if initializer == 'identity':
-                    weights_0 = _get_identity_weights(k, ref_row, self.method_)
-                else:
-                    weights_0 = np.zeros(k * (k + 1))
         else:
             weights_0 = self.weights_0_
 

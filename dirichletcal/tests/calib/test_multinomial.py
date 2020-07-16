@@ -14,7 +14,7 @@ class TestMultinomial(unittest.TestCase):
         S, y = make_classification(n_samples=1000, n_classes=2, n_features=2,
                                    n_informative=2, n_redundant=0,
                                    n_clusters_per_class=1, scale=100,
-                                   class_sep=100.0)
+                                   class_sep=100.0, random_state=42)
 
         mlr = MultinomialRegression()
         mlr.fit(S, y)
@@ -25,7 +25,7 @@ class TestMultinomial(unittest.TestCase):
         S, y = make_classification(n_samples=1000, n_classes=3, n_features=3,
                                    n_informative=3, n_redundant=0,
                                    n_clusters_per_class=1, scale=100,
-                                   class_sep=100.0)
+                                   class_sep=100.0, random_state=243)
         mlr = MultinomialRegression()
         mlr.fit(S, y)
         predictions = mlr.predict_proba(S).argmax(axis=1)
