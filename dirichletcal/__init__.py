@@ -6,7 +6,6 @@ from sklearn.base import BaseEstimator, RegressorMixin
 from .calib.fulldirichlet import FullDirichletCalibrator
 from .calib.diagdirichlet import DiagonalDirichletCalibrator
 from .calib.fixeddirichlet import FixedDiagonalDirichletCalibrator
-from .calib.gendirichlet import GenerativeDirichletCalibrator
 
 
 class DirichletCalibrator(BaseEstimator, RegressorMixin):

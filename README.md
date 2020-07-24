@@ -42,3 +42,8 @@ If you use this code in a publication please cite the following paper
   year={2019}
 }
 ```
+
+# Examples
+
+You can find some examples on how to use this package in the folder
+[examples](examples)
