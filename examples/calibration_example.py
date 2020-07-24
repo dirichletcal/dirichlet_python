@@ -2,10 +2,10 @@ from sklearn.datasets import load_iris
 from sklearn.naive_bayes import GaussianNB
 from sklearn.metrics import log_loss
 from dirichletcal.calib.fulldirichlet import FullDirichletCalibrator
-from sklearn.model_selection import train_test_split
-from sklearn.model_selection import StratifiedKFold
-from sklearn.model_selection import GridSearchCV
-from sklearn.model_selection import cross_val_score
+from sklearn.model_selection import (train_test_split,
+                                     StratifiedKFold,
+                                     GridSearchCV,
+                                     cross_val_score)
 
 
 dataset = load_iris()
@@ -16,6 +16,7 @@ x_train, x_test, y_train, y_test = train_test_split(x, y, random_state=1,
 skf = StratifiedKFold(n_splits=3, shuffle=True, random_state=0)
 
 classifier = GaussianNB()
+print('Training a classifier with cross-validation')
 scores = cross_val_score(classifier, x_train, y_train, cv=skf,
                          scoring='neg_log_loss')
 print('Crossval scores: {}'.format(scores))
