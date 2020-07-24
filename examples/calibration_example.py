@@ -25,7 +25,10 @@ classifier.fit(x_train, y_train)
 
 cla_scores_train = classifier.predict_proba(x_train)
 reg = [1e-1, 1e-2, 1e-3, 1e-4, 1e-5]
+# Full Dirichlet
 calibrator = FullDirichletCalibrator(reg_lambda=reg, reg_mu=None)
+# ODIR Dirichlet
+#calibrator = FullDirichletCalibrator(reg_lambda=reg, reg_mu=reg)
 gscv = GridSearchCV(calibrator, param_grid={'reg_lambda':  reg,
                                             'reg_mu': [None]},
                     cv=skf, scoring='neg_log_loss')
