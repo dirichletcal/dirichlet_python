@@ -19,6 +19,7 @@ source venv/bin/activate
 pip install --upgrade pip
 # Install all the dependencies
 pip install -r requirements.txt
+pip install --upgrade jaxlib
 ```
 
 # Unittest

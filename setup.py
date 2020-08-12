@@ -29,9 +29,9 @@ setuptools.setup(
     ],
     python_requires='>=3.6',
     install_requires = [
-        'numpy>=1.14.2,<1.14.3'
-        'scipy>=1.0.0,<1.0.1'
-        'scikit-learn>=0.19.1,<0.19.2'
+        'numpy>=1.14.2'
+        'scipy>=1.0.0'
+        'scikit-learn>=0.19.1'
         'jax'
         'jaxlib'
         'autograd'
