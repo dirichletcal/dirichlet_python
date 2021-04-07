@@ -1,3 +1,19 @@
+[![CI][ci:b]][ci]
+[![License BSD3][license:b]][license]
+![Python3.8][python:b]
+[![pypi][pypi:b]][pypi]
+[![codecov][codecov:b]][codecov]
+
+[ci]: https://github.com/dirichletcal/dirichlet_python/actions/workflows/ci.yml
+[ci:b]: https://github.com/dirichletcal/pycalib/workflows/CI/badge.svg
+[license]: https://github.com/dirichletcal/dirichlet_python/blob/master/LICENSE.txt
+[license:b]: https://img.shields.io/github/license/dirichletcal/pycalib.svg
+[python:b]: https://img.shields.io/badge/python-3.8-blue
+[pypi]: https://badge.fury.io/py/pycalib
+[pypi:b]: https://badge.fury.io/py/pycalib.svg
+[codecov]: https://codecov.io/gh/dirichletcal/dirichlet_python
+[codecov:b]: https://codecov.io/gh/dirichletcal/dirichlet_python/branch/master/graph/badge.svg
+
 # Dirichlet Calibration Python implementation
 
 This is a Python implementation of the Dirichlet Calibration presented in
