@@ -24,7 +24,7 @@ class MatrixScaling(BaseEstimator, RegressorMixin):
         self.reg_lambda = 0.0
         self.reg_mu = None
         self.calibrator_ = None
-        self.weights_ = weights_init
+        self.weights_ = self.weights_init
 
     def fit(self, X, y, X_val=None, y_val=None, *args, **kwargs):
 
