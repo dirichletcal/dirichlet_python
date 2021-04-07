@@ -5,12 +5,12 @@
 [![codecov][codecov:b]][codecov]
 
 [ci]: https://github.com/dirichletcal/dirichlet_python/actions/workflows/ci.yml
-[ci:b]: https://github.com/dirichletcal/pycalib/workflows/CI/badge.svg
+[ci:b]: https://github.com/dirichletcal/dirichlet_python/workflows/CI/badge.svg
 [license]: https://github.com/dirichletcal/dirichlet_python/blob/master/LICENSE.txt
-[license:b]: https://img.shields.io/github/license/dirichletcal/pycalib.svg
+[license:b]: https://img.shields.io/github/license/dirichletcal/dirichlet_python.svg
 [python:b]: https://img.shields.io/badge/python-3.8-blue
-[pypi]: https://badge.fury.io/py/pycalib
-[pypi:b]: https://badge.fury.io/py/pycalib.svg
+[pypi]: https://badge.fury.io/py/dirichletcal
+[pypi:b]: https://badge.fury.io/py/dirichletcal.svg
 [codecov]: https://codecov.io/gh/dirichletcal/dirichlet_python
 [codecov:b]: https://codecov.io/gh/dirichletcal/dirichlet_python/branch/master/graph/badge.svg
 
