@@ -6,6 +6,8 @@ from operator import mul
 import numpy as np
 from functools import reduce
 
+np.random.seed(42)
+
 class Dirichlet(object):
     '''
     Based on http://blog.bogatron.net/blog/2014/02/02/visualizing-dirichlet-distributions/

@@ -28,7 +28,7 @@ git clone git@github.com:dirichletcal/dirichlet_python.git
 # Go into the folder
 cd dirichlet_python
 # Create a new virtual environment with Python3
-python3.6 -m venv venv
+python3.8 -m venv venv
 # Load the generated virtual environment
 source venv/bin/activate
 # Upgrade pip
@@ -64,3 +64,26 @@ If you use this code in a publication please cite the following paper
 
 You can find some examples on how to use this package in the folder
 [examples](examples)
+
+# Pypi
+
+To push a new version to Pypi first build the package
+
+```
+python3.8 setup.py sdist
+```
+
+And then upload to Pypi with twine
+
+```
+twine upload dist/*
+```
+
+It may require user and password if these are not set in your home directory a
+file  __.pypirc__
+
+```
+[pypi]
+username = __token__
+password = pypi-yourtoken
+```
