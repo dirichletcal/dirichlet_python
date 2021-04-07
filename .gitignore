@@ -7,4 +7,5 @@ build/
 dirichletcal.egg-info/
 dist/
 venvtest/
-
+.coverage
+coverage.xml
