@@ -25,8 +25,7 @@ class MultinomialRegression(BaseEstimator, RegressorMixin):
         if method not in ['Full', 'Diag', 'FixDiag']:
             raise(ValueError('method {} not avaliable'.format(method)))
 
-        self.weights_ = weights_0
-        self.weights_0_ = weights_0
+        self.weights_0 = weights_0
         self.method = method
         self.initializer = initializer
         self.reg_format = reg_format
@@ -34,7 +33,11 @@ class MultinomialRegression(BaseEstimator, RegressorMixin):
         self.reg_mu = reg_mu  # If number, then ODIR is applied
         self.reg_norm = reg_norm
         self.ref_row = ref_row
+
+    def __setup(self):
         self.classes = None
+        self.weights_ = self.weights_0
+        self.weights_0_ = self.weights_0
 
     @property
     def coef_(self):
@@ -57,6 +60,8 @@ class MultinomialRegression(BaseEstimator, RegressorMixin):
 
 
     def fit(self, X, y, *args, **kwargs):
+
+        self.__setup()
 
         X_ = np.hstack((X, np.ones((len(X), 1))))
 

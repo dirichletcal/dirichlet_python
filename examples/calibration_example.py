@@ -34,9 +34,8 @@ gscv = GridSearchCV(calibrator, param_grid={'reg_lambda':  reg,
                     cv=skf, scoring='neg_log_loss')
 gscv.fit(cla_scores_train, y_train)
 
-for grid_score in gscv.grid_scores_:
-    print(grid_score)
-
+print('Grid of parameters cross-validated')
+print(gscv.param_grid)
 print('Best parameters: {}'.format(gscv.best_params_))
 
 cla_scores_test = classifier.predict_proba(x_test)

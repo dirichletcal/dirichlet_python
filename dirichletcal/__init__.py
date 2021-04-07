@@ -14,21 +14,26 @@ class DirichletCalibrator(BaseEstimator, RegressorMixin):
         if matrix_type not in ['full', 'full_gen', 'diagonal',
                                'fixed_diagonal']:
             raise ValueError
-
         self.matrix_type = matrix_type
         self.l2 = l2
-        if isinstance(l2, list):
-            self.l2_grid = l2
-        else:
-            self.l2_grid = [l2]
-        if isinstance(comp_l2, list):
-            self.comp_l2 = comp_l2
-        else:
-            self.comp_l2 = [comp_l2]
+        self.comp_l2 = comp_l2
         self.initializer = initializer
+
+
+    def __setup(self):
+        if isinstance(self.l2, list):
+            self.l2_grid = self.l2
+        else:
+            self.l2_grid = [self.l2]
+        if isinstance(self.comp_l2, list):
+            self.comp_l2 = self.comp_l2
+        else:
+            self.comp_l2 = [self.comp_l2]
         self.calibrator_ = None
 
+
     def fit(self, x, y, x_val=None, y_val=None, **kwargs):
+        __self.setup()
 
         if self.matrix_type == 'diagonal':
             self.calibrator_ = DiagonalDirichletCalibrator(

@@ -1,4 +1,3 @@
-import logging
 from sklearn.base import BaseEstimator, RegressorMixin
 
 import numpy as np
@@ -14,18 +13,23 @@ class VectorScaling(BaseEstimator, RegressorMixin):
                  logit_input=False, logit_constant=None,
                  weights_init=None, initializer='identity',
                  ref_row=True):
-        self.calibrator_ = None
-        self.weights_ = weights_init
-        self.logit_input=logit_input
+        self.weights_init = weights_init
+        self.logit_input = logit_input
         self.logit_constant = logit_constant
-        self.reg_lambda = 0.0
-        self.reg_mu = None
         self.reg_lambda_list = reg_lambda_list
         self.reg_mu_list = reg_mu_list
         self.initializer = initializer
         self.ref_row = ref_row
 
+    def __setup(self):
+        self.reg_lambda = 0.0
+        self.reg_mu = None
+        self.calibrator_ = None
+        self.weights_ = self.weights_init
+
     def fit(self, X, y, X_val=None, y_val=None, *args, **kwargs):
+
+        self.__setup()
 
         k = np.shape(X)[1]
 
