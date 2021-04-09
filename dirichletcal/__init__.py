@@ -33,7 +33,7 @@ class DirichletCalibrator(BaseEstimator, RegressorMixin):
 
 
     def fit(self, x, y, x_val=None, y_val=None, **kwargs):
-        __self.setup()
+        self.__setup()
 
         if self.matrix_type == 'diagonal':
             self.calibrator_ = DiagonalDirichletCalibrator(
