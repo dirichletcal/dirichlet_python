@@ -108,7 +108,11 @@ class MultinomialRegression(BaseEstimator, RegressorMixin):
                                      reg_format=self.reg_format)
         elif (self.optimizer == 'fmin_l_bfgs_b'
               or (self.optimizer == 'auto' and k > 36)):
-            res = scipy.optimize.fmin_l_bfgs_b(func=_objective, fprime=_gradient,
+
+            _gradient_np = lambda *args, **kwargs: raw_np.array(_gradient(*args, **kwargs))
+
+            res = scipy.optimize.fmin_l_bfgs_b(func=_objective,
+                                               fprime=_gradient_np,
                                                x0=self.weights_0_,
                                                args=(X_, XXT, target, k,
                                                      self.method,
@@ -244,7 +248,7 @@ def _newton_update(weights_0, X, XX_T, target, k, method_, maxiter=int(1024),
                    ftol=1e-12, gtol=1e-8, reg_lambda=0.0, reg_mu=None,
                    ref_row=True, initializer=None, reg_format=None):
 
-    L_list = [raw_np.float(_objective(weights_0, X, XX_T, target, k, method_,
+    L_list = [float(_objective(weights_0, X, XX_T, target, k, method_,
                                       reg_lambda, reg_mu, ref_row, initializer,
                                       reg_format))]
 
@@ -290,7 +294,7 @@ def _newton_update(weights_0, X, XX_T, target, k, method_, maxiter=int(1024),
             if (L - L_list[-1]) < 0:
                 break
 
-        L_list.append(raw_np.float(L))
+        L_list.append(float(L))
 
         logging.debug("{}: after {} iterations log-loss = {:.7e}, sum_grad = {:.7e}".format(
             method_, i, L, np.abs(gradient).sum()))
@@ -300,8 +304,8 @@ def _newton_update(weights_0, X, XX_T, target, k, method_, maxiter=int(1024),
             break
 
         if i >= 5:
-            if (raw_np.float(raw_np.min(raw_np.diff(L_list[-5:]))) > -ftol) & \
-               (raw_np.float(raw_np.sum(raw_np.diff(L_list[-5:])) > 0) == 0):
+            if (float(raw_np.min(raw_np.diff(L_list[-5:]))) > -ftol) & \
+               (float(raw_np.sum(raw_np.diff(L_list[-5:])) > 0) == 0):
                 weights = tmp_w.copy()
                 logging.debug('{}: Terminate as there is not enough changes on loss.'.format(
                     method_))

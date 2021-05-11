@@ -60,6 +60,19 @@ class TestMultinomial(unittest.TestCase):
         expected -= expected[-1, :]
         np.testing.assert_array_equal(full_matrix, expected)
 
+    def test_optimizers(self):
+        S, y = make_classification(n_samples=20, n_classes=2, n_features=2,
+                                   n_informative=2, n_redundant=0,
+                                   n_clusters_per_class=1, scale=10,
+                                   class_sep=100.0, random_state=42)
+
+        mlr = MultinomialRegression(optimizer='newton')
+        mlr.fit(S, y)
+        # TODO: add some test here
+
+        mlr = MultinomialRegression(optimizer='fmin_l_bfgs_b')
+        mlr.fit(S, y)
+        # TODO: add some test here
 
 
 def main():
