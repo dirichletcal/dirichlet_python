@@ -21,7 +21,16 @@ config.update("jax_enable_x64", True)
 class MultinomialRegression(BaseEstimator, RegressorMixin):
     def __init__(self, weights_0=None, method='Full', initializer='identity',
                  reg_format=None, reg_lambda=0.0, reg_mu=None, reg_norm=False,
-                 ref_row=True):
+                 ref_row=True, optimizer='auto'):
+        """
+        Params:
+            optimizer: string ('auto', 'newton', 'fmin_l_bfgs_b')
+                If 'auto': then 'newton' for less than 37 classes and
+                fmin_l_bfgs_b otherwise
+                If 'newton' then uses our implementation of a Newton method
+                If 'fmin_l_bfgs_b' then uses scipy.ptimize.fmin_l_bfgs_b which
+                implements a quasi Newton method
+        """
         if method not in ['Full', 'Diag', 'FixDiag']:
             raise(ValueError('method {} not avaliable'.format(method)))
 
@@ -33,6 +42,7 @@ class MultinomialRegression(BaseEstimator, RegressorMixin):
         self.reg_mu = reg_mu  # If number, then ODIR is applied
         self.reg_norm = reg_norm
         self.ref_row = ref_row
+        self.optimizer = optimizer
 
     def __setup(self):
         self.classes = None
@@ -89,13 +99,15 @@ class MultinomialRegression(BaseEstimator, RegressorMixin):
 
         self.weights_0_ = self._get_initial_weights(self.initializer)
 
-        if k <= 36:
+        if (self.optimizer == 'newton'
+            or (self.optimizer == 'auto' and k <= 36)):
             weights = _newton_update(self.weights_0_, X_, XXT, target, k,
                                      self.method, reg_lambda=self.reg_lambda,
                                      reg_mu=self.reg_mu, ref_row=self.ref_row,
                                      initializer=self.initializer,
                                      reg_format=self.reg_format)
-        else:
+        elif (self.optimizer == 'fmin_l_bfgs_b'
+              or (self.optimizer == 'auto' and k > 36)):
             res = scipy.optimize.fmin_l_bfgs_b(func=_objective, fprime=_gradient,
                                                x0=self.weights_0_,
                                                args=(X_, XXT, target, k,
@@ -107,6 +119,8 @@ class MultinomialRegression(BaseEstimator, RegressorMixin):
                                                maxls=128,
                                                factr=1.0)
             weights = res[0]
+        else:
+            raise(ValueError('Unknown optimizer: {}'.format(self.optimizer)))
 
         self.weights_ = _get_weights(weights, k, self.ref_row, self.method)
 
