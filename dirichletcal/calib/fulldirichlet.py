@@ -11,12 +11,21 @@ from .multinomial import _get_identity_weights
 
 class FullDirichletCalibrator(BaseEstimator, RegressorMixin):
     def __init__(self, reg_lambda=0.0, reg_mu=None, weights_init=None,
-                 initializer='identity', reg_norm=False, ref_row=True):
+                 initializer='identity', reg_norm=False, ref_row=True,
+                 optimizer='auto'):
 
         """
         Params:
-            weights_init: (nd.array) weights used for initialisation, if None then idendity matrix used. Shape = (n_classes - 1, n_classes + 1)
-            comp_l2: (bool) If true, then complementary L2 regularization used (off-diagonal regularization)
+            weights_init: (nd.array) weights used for initialisation, if None
+            then idendity matrix used. Shape = (n_classes - 1, n_classes + 1)
+            comp_l2: (bool) If true, then complementary L2 regularization used
+            (off-diagonal regularization)
+            optimizer: string ('auto', 'newton', 'fmin_l_bfgs_b')
+                If 'auto': then 'newton' for less than 37 classes and
+                fmin_l_bfgs_b otherwise
+                If 'newton' then uses our implementation of a Newton method
+                If 'fmin_l_bfgs_b' then uses scipy.ptimize.fmin_l_bfgs_b which
+                implements a quasi Newton method
         """
         self.reg_lambda = reg_lambda
         self.reg_mu = reg_mu  # Complementary L2 regularization. (Off-diagonal regularization)
@@ -24,6 +33,7 @@ class FullDirichletCalibrator(BaseEstimator, RegressorMixin):
         self.initializer = initializer
         self.reg_norm = reg_norm
         self.ref_row = ref_row
+        self.optimizer = optimizer
 
     def fit(self, X, y, X_val=None, y_val=None, *args, **kwargs):
 
@@ -44,7 +54,8 @@ class FullDirichletCalibrator(BaseEstimator, RegressorMixin):
                                         reg_lambda=self.reg_lambda,
                                         reg_mu=self.reg_mu,
                                         reg_norm=self.reg_norm,
-                                        ref_row=self.ref_row)
+                                        ref_row=self.ref_row,
+                                        optimizer=self.optimizer)
         self.calibrator_.fit(_X, y, *args, **kwargs)
         final_loss = log_loss(y_val, self.calibrator_.predict_proba(_X_val))
 

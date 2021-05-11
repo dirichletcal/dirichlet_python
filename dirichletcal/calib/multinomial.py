@@ -21,7 +21,16 @@ config.update("jax_enable_x64", True)
 class MultinomialRegression(BaseEstimator, RegressorMixin):
     def __init__(self, weights_0=None, method='Full', initializer='identity',
                  reg_format=None, reg_lambda=0.0, reg_mu=None, reg_norm=False,
-                 ref_row=True):
+                 ref_row=True, optimizer='auto'):
+        """
+        Params:
+            optimizer: string ('auto', 'newton', 'fmin_l_bfgs_b')
+                If 'auto': then 'newton' for less than 37 classes and
+                fmin_l_bfgs_b otherwise
+                If 'newton' then uses our implementation of a Newton method
+                If 'fmin_l_bfgs_b' then uses scipy.ptimize.fmin_l_bfgs_b which
+                implements a quasi Newton method
+        """
         if method not in ['Full', 'Diag', 'FixDiag']:
             raise(ValueError('method {} not avaliable'.format(method)))
 
@@ -33,6 +42,7 @@ class MultinomialRegression(BaseEstimator, RegressorMixin):
         self.reg_mu = reg_mu  # If number, then ODIR is applied
         self.reg_norm = reg_norm
         self.ref_row = ref_row
+        self.optimizer = optimizer
 
     def __setup(self):
         self.classes = None
@@ -89,14 +99,20 @@ class MultinomialRegression(BaseEstimator, RegressorMixin):
 
         self.weights_0_ = self._get_initial_weights(self.initializer)
 
-        if k <= 36:
+        if (self.optimizer == 'newton'
+            or (self.optimizer == 'auto' and k <= 36)):
             weights = _newton_update(self.weights_0_, X_, XXT, target, k,
                                      self.method, reg_lambda=self.reg_lambda,
                                      reg_mu=self.reg_mu, ref_row=self.ref_row,
                                      initializer=self.initializer,
                                      reg_format=self.reg_format)
-        else:
-            res = scipy.optimize.fmin_l_bfgs_b(func=_objective, fprime=_gradient,
+        elif (self.optimizer == 'fmin_l_bfgs_b'
+              or (self.optimizer == 'auto' and k > 36)):
+
+            _gradient_np = lambda *args, **kwargs: raw_np.array(_gradient(*args, **kwargs))
+
+            res = scipy.optimize.fmin_l_bfgs_b(func=_objective,
+                                               fprime=_gradient_np,
                                                x0=self.weights_0_,
                                                args=(X_, XXT, target, k,
                                                      self.method,
@@ -107,6 +123,8 @@ class MultinomialRegression(BaseEstimator, RegressorMixin):
                                                maxls=128,
                                                factr=1.0)
             weights = res[0]
+        else:
+            raise(ValueError('Unknown optimizer: {}'.format(self.optimizer)))
 
         self.weights_ = _get_weights(weights, k, self.ref_row, self.method)
 
@@ -230,7 +248,7 @@ def _newton_update(weights_0, X, XX_T, target, k, method_, maxiter=int(1024),
                    ftol=1e-12, gtol=1e-8, reg_lambda=0.0, reg_mu=None,
                    ref_row=True, initializer=None, reg_format=None):
 
-    L_list = [raw_np.float(_objective(weights_0, X, XX_T, target, k, method_,
+    L_list = [float(_objective(weights_0, X, XX_T, target, k, method_,
                                       reg_lambda, reg_mu, ref_row, initializer,
                                       reg_format))]
 
@@ -276,7 +294,7 @@ def _newton_update(weights_0, X, XX_T, target, k, method_, maxiter=int(1024),
             if (L - L_list[-1]) < 0:
                 break
 
-        L_list.append(raw_np.float(L))
+        L_list.append(float(L))
 
         logging.debug("{}: after {} iterations log-loss = {:.7e}, sum_grad = {:.7e}".format(
             method_, i, L, np.abs(gradient).sum()))
@@ -286,8 +304,8 @@ def _newton_update(weights_0, X, XX_T, target, k, method_, maxiter=int(1024),
             break
 
         if i >= 5:
-            if (raw_np.float(raw_np.min(raw_np.diff(L_list[-5:]))) > -ftol) & \
-               (raw_np.float(raw_np.sum(raw_np.diff(L_list[-5:])) > 0) == 0):
+            if (float(raw_np.min(raw_np.diff(L_list[-5:]))) > -ftol) & \
+               (float(raw_np.sum(raw_np.diff(L_list[-5:])) > 0) == 0):
                 weights = tmp_w.copy()
                 logging.debug('{}: Terminate as there is not enough changes on loss.'.format(
                     method_))
