@@ -3,6 +3,9 @@ from distutils.util import convert_path
 
 with open("README.md", 'r') as f:
     long_description = f.read()
+    
+with open("requirements.txt") as fh:
+    requirements = fh.read().splitlines()
 
 main_ns = {}
 ver_path = convert_path('dirichletcal/version.py')
@@ -28,12 +31,5 @@ setuptools.setup(
         "Operating System :: OS Independent",
     ],
     python_requires='>=3.6',
-    install_requires = [
-        'numpy>=1.14.2'
-        'scipy>=1.0.0'
-        'scikit-learn>=0.19.1'
-        'jax'
-        'jaxlib'
-        'autograd'
-    ]
+    install_requires=requirements,
 )
