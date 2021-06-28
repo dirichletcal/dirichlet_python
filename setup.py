@@ -13,7 +13,7 @@ with open(ver_path) as ver_file:
     exec(ver_file.read(), main_ns)
 
 setuptools.setup(
-    name='dirichlet_python',
+    name='dirichletcal',
     version=main_ns['__version__'],
     author='Miquel Perello Nieto and Hao Song',
     author_email='perello.nieto@gmail.com',
