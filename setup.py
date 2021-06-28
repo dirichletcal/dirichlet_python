@@ -10,7 +10,7 @@ with open(ver_path) as ver_file:
     exec(ver_file.read(), main_ns)
 
 setuptools.setup(
-    name='dirichletcal',
+    name='dirichlet_python',
     version=main_ns['__version__'],
     author='Miquel Perello Nieto and Hao Song',
     author_email='perello.nieto@gmail.com',
@@ -28,12 +28,5 @@ setuptools.setup(
         "Operating System :: OS Independent",
     ],
     python_requires='>=3.6',
-    install_requires = [
-        'numpy>=1.14.2'
-        'scipy>=1.0.0'
-        'scikit-learn>=0.19.1'
-        'jax'
-        'jaxlib'
-        'autograd'
-    ]
+    install_requires=requirements,
 )
