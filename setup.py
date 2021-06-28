@@ -3,6 +3,9 @@ from distutils.util import convert_path
 
 with open("README.md", 'r') as f:
     long_description = f.read()
+    
+with open("requirements.txt") as fh:
+    requirements = fh.read().splitlines()
 
 main_ns = {}
 ver_path = convert_path('dirichletcal/version.py')
