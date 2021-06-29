@@ -76,7 +76,7 @@ class MultinomialRegression(BaseEstimator, RegressorMixin):
                 self.reg_lambda = self.reg_lambda / (k * (k - 1))
                 self.reg_mu = self.reg_mu / k
 
-        target = label_binarize(y, self.classes)
+        target = label_binarize(y, classes=self.classes)
 
         if k == 2:
             target = np.hstack([1-target, target])
