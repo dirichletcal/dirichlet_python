@@ -11,8 +11,10 @@ from .calib.fixeddirichlet import FixedDiagonalDirichletCalibrator
 class DirichletCalibrator(BaseEstimator, RegressorMixin):
     def __init__(self, matrix_type='full', l2=0.0, comp_l2=False,
                  initializer='identity'):
-        if matrix_type not in ['full', 'full_gen', 'diagonal',
-                               'fixed_diagonal']:
+        print(('WARNING: DirichletCalibrator class is legacy code and needs' +
+               'to be tested. Use the classes defined in dirichletcal.calib' +
+               'instead.'))
+        if matrix_type not in ['full', 'diagonal', 'fixed_diagonal']:
             raise ValueError
         self.matrix_type = matrix_type
         self.l2 = l2
@@ -45,8 +47,6 @@ class DirichletCalibrator(BaseEstimator, RegressorMixin):
             self.calibrator_ = FullDirichletCalibrator(
                 reg_lambda_list=self.l2_grid, reg_mu_list=self.comp_l2,
                 initializer=self.initializer)
-        elif self.matrix_type == 'full_gen':
-            self.calibrator_ = GenerativeDirichletCalibrator()
         else:
             raise ValueError
 
