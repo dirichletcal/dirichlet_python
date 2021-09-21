@@ -3,6 +3,7 @@
 ![Python3.8][python:b]
 [![pypi][pypi:b]][pypi]
 [![codecov][codecov:b]][codecov]
+[![DOI](https://zenodo.org/badge/227004259.svg)](https://zenodo.org/badge/latestdoi/227004259)
 
 [ci]: https://github.com/dirichletcal/dirichlet_python/actions/workflows/ci.yml
 [ci:b]: https://github.com/dirichletcal/dirichlet_python/workflows/CI/badge.svg
