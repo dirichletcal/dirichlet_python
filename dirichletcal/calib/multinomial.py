@@ -274,7 +274,7 @@ def _newton_update(weights_0, X, XX_T, target, k, method_, maxiter=int(1024),
             updates = gradient / hessian
         else:
             try:
-                inverse = scipy.linalg.pinv2(hessian)
+                inverse = scipy.linalg.pinv(hessian)
                 updates = np.matmul(inverse, gradient)
             except (raw_np.linalg.LinAlgError, ValueError) as err:
                 logging.error(err)
