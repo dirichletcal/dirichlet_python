@@ -10,4 +10,4 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ### Changed
 - Dependencies in `requirements.txt` to be pinned to specific versions that `0.4.1` will run with.
-- Calling of `label_binarizer` to use `classes` keyword arg in Scikit-learn.
+- Calling of `label_binarize` to use `classes` keyword arg in Scikit-learn.
