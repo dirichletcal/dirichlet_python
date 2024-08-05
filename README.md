@@ -1,6 +1,6 @@
 [![CI][ci:b]][ci]
 [![License BSD3][license:b]][license]
-![Python3.8][python:b]
+![Python3.12][python:b]
 [![pypi][pypi:b]][pypi]
 [![codecov][codecov:b]][codecov]
 [![DOI](https://zenodo.org/badge/227004259.svg)](https://zenodo.org/badge/latestdoi/227004259)
