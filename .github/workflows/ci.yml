@@ -2,10 +2,10 @@ name: CI
 on:
   push:
     branches:
-      - python312
+      - master
   pull_request:
     branches:
-      - python312
+      - master
 jobs:
   build:
     runs-on: ubuntu-latest
