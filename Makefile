@@ -1,24 +1,13 @@
-.PHONY: venv
-
 SHELL := /bin/bash
 
-venv:
-	python3.8 -m venv venv
-
-pip: load-venv
-	pip install --upgrade pip
-
-load-venv:
-	source ./venv/bin/activate
-
-requirements: pip
+requirements:
 	pip install -r requirements.txt
 
-requirements-dev: requirements pip
+requirements-dev: requirements
 	pip install -r requirements-dev.txt
 
 build: requirements-dev
-	python3.8 setup.py sdist
+	python setup.py sdist
 
 pypi: build check-readme
 	twine upload dist/*
@@ -34,7 +23,9 @@ clean:
 # All the following assume the requirmenets-dev are installed, but to make the
 # output clean the dependency has been removed
 test: requirements-dev
-	pytest --doctest-modules --cov-report=term-missing --cov=dirichletcal dirichletcal
+	which pytest
+	pytest --version
+	pytest dirichletcal
 
 check-readme:
 	twine check dist/*

@@ -68,6 +68,19 @@ class FullDirichletCalibrator(BaseEstimator, RegressorMixin):
         return self.weights_init
 
     @property
+    def cannonical_weights(self):
+        b = self.weights[:, -1]
+        w = self.weights[:, :-1]
+        col_min = np.min(w, axis=0)
+        a = w - col_min
+
+        def softmax(z):
+            return np.divide(np.exp(z), np.sum(np.exp(z)))
+
+        c = softmax(np.matmul(w, np.log(np.ones(len(b)) / len(b))) + b)
+        return np.hstack((a, c.reshape(-1, 1)))
+
+    @property
     def coef_(self):
         return self.calibrator_.coef_
 
