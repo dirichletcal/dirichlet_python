@@ -1,3 +1,4 @@
 twine
 pylint
 ipython
+setuptools

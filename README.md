@@ -9,7 +9,7 @@
 [ci:b]: https://github.com/dirichletcal/dirichlet_python/workflows/CI/badge.svg
 [license]: https://github.com/dirichletcal/dirichlet_python/blob/master/LICENSE.txt
 [license:b]: https://img.shields.io/github/license/dirichletcal/dirichlet_python.svg
-[python:b]: https://img.shields.io/badge/python-3.8-blue
+[python:b]: https://img.shields.io/badge/python-3.12-blue
 [pypi]: https://badge.fury.io/py/dirichletcal
 [pypi:b]: https://badge.fury.io/py/dirichletcal.svg
 [codecov]: https://codecov.io/gh/dirichletcal/dirichlet_python
@@ -19,7 +19,10 @@
 
 This is a Python implementation of the Dirichlet Calibration presented in
 __Beyond temperature scaling: Obtaining well-calibrated multi-class probabilities
-with Dirichlet calibration__ at NeurIPS 2019.
+with Dirichlet calibration__ at NeurIPS 2019. The original version used Python
+3.8 and reached version `0.4.2`. The code started using Python 3.12 from
+version `0.5.0`, you can see the other version in the GitHub history, tags, or
+in Pypi.
 
 # Installation
 
@@ -29,7 +32,7 @@ git clone git@github.com:dirichletcal/dirichlet_python.git
 # Go into the folder
 cd dirichlet_python
 # Create a new virtual environment with Python3
-python3.8 -m venv venv
+python3.12 -m venv venv
 # Load the generated virtual environment
 source venv/bin/activate
 # Upgrade pip
@@ -71,7 +74,7 @@ You can find some examples on how to use this package in the folder
 To push a new version to Pypi first build the package
 
 ```
-python3.8 setup.py sdist
+python3.12 setup.py sdist
 ```
 
 And then upload to Pypi with twine
