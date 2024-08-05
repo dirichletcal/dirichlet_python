@@ -24,7 +24,7 @@ jobs:
       - name: Run tests with pytest
         run: pytest --cov-report=xml --cov=dirichletcal dirichletcal
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v4.0.1
         with:
           fail_ci_if_error: true # optional (default = false)
           files: ./coverage.xml
