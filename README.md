@@ -91,3 +91,8 @@ file  __.pypirc__
 username = __token__
 password = pypi-yourtoken
 ```
+
+# Continuous Integration
+
+This repository uses Codecov to analyse the quality of the code and code
+coverage.
