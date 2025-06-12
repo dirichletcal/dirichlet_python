@@ -29,10 +29,10 @@ setuptools.setup(
     ],
     python_requires='>=3.12',
     install_requires=[
-        "numpy==2.0.1",
-        "scipy==1.14.0",
-        "scikit-learn==1.5.1",
-        "jax==0.4.31",
-        "jaxlib==0.4.31",
+        "numpy",
+        "scipy",
+        "scikit-learn",
+        "jax",
+        "jaxlib",
     ]
 )
