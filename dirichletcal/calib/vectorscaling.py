@@ -5,8 +5,6 @@ from .multinomial import MultinomialRegression
 from ..utils import clip_for_log
 from sklearn.metrics import log_loss
 
-from .multinomial import _get_identity_weights
-
 
 class VectorScaling(BaseEstimator, RegressorMixin):
     def __init__(self, reg_lambda_list=[0.0], reg_mu_list=[None],
@@ -37,7 +35,7 @@ class VectorScaling(BaseEstimator, RegressorMixin):
             X_val = X.copy()
             y_val = y.copy()
 
-        if self.logit_input == False:
+        if not self.logit_input:
             _X = np.copy(X)
             _X = np.log(clip_for_log(_X))
             _X_val = np.copy(X_val)
@@ -52,12 +50,16 @@ class VectorScaling(BaseEstimator, RegressorMixin):
             _X = np.copy(X)
             _X_val = np.copy(X_val)
 
+        final_cal = np.nan
+        final_loss = np.nan
+        final_reg_lambda = np.nan
+        final_reg_mu = np.nan
+
         for i in range(0, len(self.reg_lambda_list)):
             for j in range(0, len(self.reg_mu_list)):
-                tmp_cal = MultinomialRegression(method='Diag',
-                                                reg_lambda=self.reg_lambda_list[i],
-                                                reg_mu=self.reg_mu_list[j],
-                                                ref_row=self.ref_row)
+                tmp_cal = MultinomialRegression(
+                    method='Diag', reg_lambda=self.reg_lambda_list[i],
+                    reg_mu=self.reg_mu_list[j], ref_row=self.ref_row)
                 tmp_cal.fit(_X, y, *args, **kwargs)
                 tmp_loss = log_loss(y_val, tmp_cal.predict_proba(_X_val))
 
@@ -90,7 +92,7 @@ class VectorScaling(BaseEstimator, RegressorMixin):
     def predict_proba(self, S):
         k = np.shape(S)[1]
 
-        if self.logit_input == False:
+        if not self.logit_input:
             _S = np.log(clip_for_log(np.copy(S)))
             if self.logit_constant is None:
                 _S = _S - _S[:, -1].reshape(-1, 1).repeat(k, axis=1)
@@ -104,7 +106,7 @@ class VectorScaling(BaseEstimator, RegressorMixin):
     def predict(self, S):
         k = np.shape(S)[1]
 
-        if self.logit_input == False:
+        if not self.logit_input:
             _S = np.log(clip_for_log(np.copy(S)))
             if self.logit_constant is None:
                 _S = _S - _S[:, -1].reshape(-1, 1).repeat(k, axis=1)

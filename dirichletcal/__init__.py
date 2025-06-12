@@ -20,7 +20,6 @@ class DirichletCalibrator(BaseEstimator, RegressorMixin):
         self.comp_l2 = comp_l2
         self.initializer = initializer
 
-
     def __setup(self):
         if isinstance(self.l2, list):
             self.l2_grid = self.l2
@@ -32,16 +31,15 @@ class DirichletCalibrator(BaseEstimator, RegressorMixin):
             self.comp_l2 = [self.comp_l2]
         self.calibrator_ = None
 
-
     def fit(self, x, y, x_val=None, y_val=None, **kwargs):
         self.__setup()
 
         if self.matrix_type == 'diagonal':
             self.calibrator_ = DiagonalDirichletCalibrator(
-                l2=self.l2, initializer=self.initializer)
+               reg_lambda=self.l2, initializer=self.initializer)
         elif self.matrix_type == 'full':
             self.calibrator_ = FullDirichletCalibrator(
-                reg_lambda_list=self.l2_grid, reg_mu_list=self.comp_l2,
+                reg_lambda=self.l2, reg_mu=self.comp_l2,
                 initializer=self.initializer)
         else:
             raise ValueError
@@ -62,25 +60,29 @@ class DirichletCalibrator(BaseEstimator, RegressorMixin):
 
     @property
     def l2_(self):
-        if (self.calibrator_ is not None) and (hasattr(self.calibrator_, 'l2')):
+        if ((self.calibrator_ is not None) and (hasattr(self.calibrator_,
+                                                        'l2'))):
             return self.calibrator_.l2
         return None
 
     @property
     def weights_(self):
-        if (self.calibrator_ is not None) and (hasattr(self.calibrator_, 'weights_')):
+        if ((self.calibrator_ is not None) and (hasattr(self.calibrator_,
+                                                        'weights_'))):
             return self.calibrator_.weights_
         return None
 
     @property
     def coef_(self):
-        if (self.calibrator_ is not None) and (hasattr(self.calibrator_, 'coef_')):
+        if ((self.calibrator_ is not None) and (hasattr(self.calibrator_,
+                                                        'coef_'))):
             return self.calibrator_.coef_
         return None
 
     @property
     def intercept_(self):
-        if (self.calibrator_ is not None) and (hasattr(self.calibrator_, 'intercept_')):
+        if (self.calibrator_ is not None) and (hasattr(self.calibrator_,
+                                                       'intercept_')):
             return self.calibrator_.intercept_
         return None
 

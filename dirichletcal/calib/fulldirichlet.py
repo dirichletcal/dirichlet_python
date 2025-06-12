@@ -1,12 +1,9 @@
-import logging
 from sklearn.base import BaseEstimator, RegressorMixin
 
 import numpy as np
 from .multinomial import MultinomialRegression
 from ..utils import clip_for_log
 from sklearn.metrics import log_loss
-
-from .multinomial import _get_identity_weights
 
 
 class FullDirichletCalibrator(BaseEstimator, RegressorMixin):
@@ -28,7 +25,7 @@ class FullDirichletCalibrator(BaseEstimator, RegressorMixin):
                 implements a quasi Newton method
         """
         self.reg_lambda = reg_lambda
-        self.reg_mu = reg_mu  # Complementary L2 regularization. (Off-diagonal regularization)
+        self.reg_mu = reg_mu  # Complementary L2 regularization. (Off-diagonal)
         self.weights_init = weights_init  # Input weights for initialisation
         self.initializer = initializer
         self.reg_norm = reg_norm
@@ -39,8 +36,6 @@ class FullDirichletCalibrator(BaseEstimator, RegressorMixin):
 
         self.weights_ = self.weights_init
 
-        k = np.shape(X)[1]
-
         if X_val is None:
             X_val = X.copy()
             y_val = y.copy()
@@ -50,14 +45,12 @@ class FullDirichletCalibrator(BaseEstimator, RegressorMixin):
         _X_val = np.copy(X_val)
         _X_val = np.log(clip_for_log(X_val))
 
-        self.calibrator_ = MultinomialRegression(method='Full',
-                                        reg_lambda=self.reg_lambda,
-                                        reg_mu=self.reg_mu,
-                                        reg_norm=self.reg_norm,
-                                        ref_row=self.ref_row,
-                                        optimizer=self.optimizer)
+        self.calibrator_ = MultinomialRegression(
+            method='Full', reg_lambda=self.reg_lambda, reg_mu=self.reg_mu,
+            reg_norm=self.reg_norm, ref_row=self.ref_row,
+            optimizer=self.optimizer)
         self.calibrator_.fit(_X, y, *args, **kwargs)
-        final_loss = log_loss(y_val, self.calibrator_.predict_proba(_X_val))
+        self.final_loss = log_loss(y_val, self.calibrator_.predict_proba(_X_val))
 
         return self
 

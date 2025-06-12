@@ -2,8 +2,6 @@ import unittest
 import numpy as np
 from dirichletcal.calib.multinomial import MultinomialRegression
 from dirichletcal.calib.multinomial import _get_weights
-from . import get_simple_binary_example
-from . import get_simple_ternary_example
 
 from sklearn.datasets import make_classification
 from sklearn.metrics import accuracy_score
@@ -20,7 +18,7 @@ class TestMultinomial(unittest.TestCase):
         mlr.fit(S, y)
         predictions = mlr.predict_proba(S).argmax(axis=1)
         acc = accuracy_score(y, predictions)
-        self.assertGreater(acc, 0.99, "accuracy must be superior to 99 percent")
+        self.assertGreater(acc, 0.99, "accuracy must be superior to 99%")
 
         S, y = make_classification(n_samples=1000, n_classes=3, n_features=3,
                                    n_informative=3, n_redundant=0,
@@ -41,8 +39,10 @@ class TestMultinomial(unittest.TestCase):
 
         k = 3
         params = np.arange(k) + 1
-        full_matrix = _get_weights(params, k=k, ref_row=False, method='FixDiag')
-        expected = np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0]], 'float')
+        full_matrix = _get_weights(params, k=k, ref_row=False,
+                                   method='FixDiag')
+        expected = np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0]],
+                            'float')
         np.testing.assert_array_equal(full_matrix, expected)
 
     def test_get_weights_ref_row(self):

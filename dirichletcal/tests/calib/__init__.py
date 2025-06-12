@@ -1,25 +1,26 @@
 import numpy as np
-from sklearn.datasets import make_classification
 
 from math import gamma
 from operator import mul
-import numpy as np
 from functools import reduce
 
 np.random.seed(42)
 
+
 class Dirichlet(object):
     '''
-    Based on http://blog.bogatron.net/blog/2014/02/02/visualizing-dirichlet-distributions/
+    Based on
+    http://blog.bogatron.net/blog/2014/02/02/visualizing-dirichlet-distributions/
     '''
     def __init__(self, alpha):
         self._alpha = np.array(alpha)
         self._coef = gamma(np.sum(self._alpha)) / \
-                     reduce(mul, [gamma(a) for a in self._alpha])
+                reduce(mul, [gamma(a) for a in self._alpha])
+
     def pdf(self, x):
         '''Returns pdf value for `x`.'''
         return self._coef * reduce(mul, [xx ** (aa - 1)
-                                         for (xx, aa)in zip(x, self._alpha)])
+                                         for (xx, aa) in zip(x, self._alpha)])
 
     def sample(self, size=None, **kwargs):
         return np.random.dirichlet(self._alpha, size=size, **kwargs)
@@ -42,7 +43,7 @@ class MixtureDistribution(object):
         classes = np.random.multinomial(n=1, pvals=self.priors, size=size)
         samples = np.empty_like(classes, dtype='float')
         for i, size in enumerate(classes.sum(axis=0)):
-            samples[np.where(classes[:,i])[0]] = self.distributions[i].sample(size)
+            samples[np.where(classes[:, i])[0]] = self.distributions[i].sample(size)
         return samples, classes
 
     def posterior(self, pvalues, c=0):
@@ -62,6 +63,7 @@ class MixtureDistribution(object):
             string += '\n'
         return string
 
+
 def get_simple_binary_example():
     S = np.random.beta(10, 0.1, 100).transpose()
     S[50:] = 1-S[50:]
@@ -69,12 +71,14 @@ def get_simple_binary_example():
     y = np.hstack([np.zeros(50), np.ones(50)])
     return S, y
 
+
 def get_extreme_binary_example():
     S = np.random.beta(10000, 0.1, 100).transpose()
     S[50:] = 1-S[50:]
     S = np.vstack([S, 1-S]).T
     y = np.hstack([np.zeros(50), np.ones(50)])
     return S, y
+
 
 def get_simple_ternary_example():
     mdir = MixtureDistribution([1./3, 1./3, 1./3],

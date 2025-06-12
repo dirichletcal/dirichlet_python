@@ -23,7 +23,7 @@ class TestFullDirichlet(unittest.TestCase):
                                "accuracy must be superior to 97 percent")
 
             ac = self.cal.cannonical_weights
-            self.assertAlmostEqual(sum(ac[:,-1]), 1)
+            self.assertAlmostEqual(sum(ac[:, -1]), 1)
             assert(np.all(ac >= 0))
 
     def test_extreme_values(self):

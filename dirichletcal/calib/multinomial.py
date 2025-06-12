@@ -32,7 +32,7 @@ class MultinomialRegression(BaseEstimator, RegressorMixin):
                 implements a quasi Newton method
         """
         if method not in ['Full', 'Diag', 'FixDiag']:
-            raise(ValueError('method {} not avaliable'.format(method)))
+            raise(ValueError(f"method {method} not avaliable"))
 
         self.weights_0 = weights_0
         self.method = method
@@ -68,7 +68,6 @@ class MultinomialRegression(BaseEstimator, RegressorMixin):
 
         return np.asarray(self.predict_proba(S))
 
-
     def fit(self, X, y, *args, **kwargs):
 
         self.__setup()
@@ -99,8 +98,8 @@ class MultinomialRegression(BaseEstimator, RegressorMixin):
 
         self.weights_0_ = self._get_initial_weights(self.initializer)
 
-        if (self.optimizer == 'newton'
-            or (self.optimizer == 'auto' and k <= 36)):
+        if (self.optimizer == 'newton' or
+           (self.optimizer == 'auto' and k <= 36)):
             weights = _newton_update(self.weights_0_, X_, XXT, target, k,
                                      self.method, reg_lambda=self.reg_lambda,
                                      reg_mu=self.reg_mu, ref_row=self.ref_row,
@@ -140,6 +139,8 @@ class MultinomialRegression(BaseEstimator, RegressorMixin):
             raise ValueError
 
         k = len(self.classes)
+
+        weights_0 = self.weights_0_
 
         if self.weights_0_ is None:
             if initializer == 'identity':
@@ -185,33 +186,33 @@ _hessian = jax.hessian(_objective, argnums=0)
 
 
 def _get_weights(params, k, ref_row, method):
-        ''' Reshapes the given params (weights) into the full matrix including 0
-        '''
+    '''Reshapes the given params (weights) into the full matrix including 0
+    '''
 
-        if method in ['Full', None]:
-            raw_weights = params.reshape(-1, k+1)
-            # weights = np.zeros([k, k+1])
-            # weights[:-1, :] = params.reshape(-1, k + 1)
+    if method in ['Full', None]:
+        raw_weights = params.reshape(-1, k+1)
+        # weights = np.zeros([k, k+1])
+        # weights[:-1, :] = params.reshape(-1, k + 1)
 
-        elif method == 'Diag':
-            raw_weights = np.hstack([np.diag(params[:k]),
-                                     params[k:].reshape(-1, 1)])
-            # weights[:, :-1][np.diag_indices(k)] = params[:]
+    elif method == 'Diag':
+        raw_weights = np.hstack([np.diag(params[:k]),
+                                 params[k:].reshape(-1, 1)])
+        # weights[:, :-1][np.diag_indices(k)] = params[:]
 
-        elif method == 'FixDiag':
-            raw_weights = np.hstack([np.eye(k) * params[0], np.zeros((k, 1))])
-            # weights[np.dgag_indices(k - 1)] = params[0]
-            # weights[np.diag_indices(k)] = params[0]
-        else:
-            raise(ValueError("Unknown calibration method {}".format(method)))
+    elif method == 'FixDiag':
+        raw_weights = np.hstack([np.eye(k) * params[0], np.zeros((k, 1))])
+        # weights[np.dgag_indices(k - 1)] = params[0]
+        # weights[np.diag_indices(k)] = params[0]
+    else:
+        raise(ValueError(f"Unknown calibration method {method}"))
 
-        if ref_row:
-            weights = raw_weights - np.repeat(
-                raw_weights[-1, :].reshape(1, -1), k, axis=0)
-        else:
-            weights = raw_weights
+    if ref_row:
+        weights = raw_weights - np.repeat(
+            raw_weights[-1, :].reshape(1, -1), k, axis=0)
+    else:
+        weights = raw_weights
 
-        return weights
+    return weights
 
 
 def _get_identity_weights(n_classes, ref_row, method):

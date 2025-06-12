@@ -1,7 +1,8 @@
+from dirichletcal.calib.fulldirichlet import FullDirichletCalibrator
+
 from sklearn.datasets import load_iris
 from sklearn.naive_bayes import GaussianNB
 from sklearn.metrics import log_loss
-from dirichletcal.calib.fulldirichlet import FullDirichletCalibrator
 from sklearn.model_selection import (train_test_split,
                                      StratifiedKFold,
                                      GridSearchCV,
