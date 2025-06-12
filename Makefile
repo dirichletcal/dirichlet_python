@@ -14,8 +14,8 @@ pypi: build check-readme
 
 # From Scikit-learn
 code-analysis:
-	flake8 pycalib | grep -v external
-	pylint -E pycalib/ -d E1103,E0611,E1101
+	flake8 dirichletcal | grep -v external
+	pylint -E dirichletcal/ -d E1103,E0611,E1101
 
 clean:
 	rm -rf ./dist
